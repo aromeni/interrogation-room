@@ -1,0 +1,1374 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12100e">
+  <title>The Interrogation Room</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #12100e;
+      --panel: #1c1917;
+      --panel-deep: #171412;
+      --brass: #c9a227;
+      --parchment: #e8e2d4;
+      --muted: #a39d8f;
+      --danger: #b3402f;
+      --hairline: rgba(201, 162, 39, 0.25);
+      --paper: #c9b98f;
+      --paper-ink: #2b251d;
+      --shadow: rgba(0, 0, 0, 0.42);
+      --heading: Georgia, "Times New Roman", serif;
+      --body: "Courier New", ui-monospace, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--ink);
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--parchment);
+      font-family: var(--body);
+      line-height: 1.6;
+      background:
+        radial-gradient(circle at 50% 8%, rgba(201, 162, 39, 0.07), transparent 30rem),
+        repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.008) 0 1px, transparent 1px 5px),
+        var(--ink);
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      content: "";
+      pointer-events: none;
+      box-shadow: inset 0 0 12rem 3rem #000;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button,
+    input,
+    select {
+      min-height: 2.75rem;
+    }
+
+    button {
+      padding: 0.68rem 1rem;
+      color: var(--parchment);
+      background: transparent;
+      border: 1px solid var(--brass);
+      border-radius: 2px;
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: color 150ms ease, background 150ms ease, transform 150ms ease;
+    }
+
+    button:hover:not(:disabled),
+    button:focus-visible:not(:disabled) {
+      color: var(--ink);
+      background: var(--brass);
+      transform: translateY(-1px);
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    .suspect-card:focus-visible {
+      outline: 2px solid var(--brass);
+      outline-offset: 3px;
+    }
+
+    button:disabled,
+    input:disabled,
+    select:disabled,
+    textarea:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      color: var(--parchment);
+      background: #100e0d;
+      border: 1px solid var(--hairline);
+      border-radius: 2px;
+    }
+
+    input,
+    select {
+      padding: 0.6rem 0.7rem;
+    }
+
+    textarea {
+      min-height: 5rem;
+      padding: 0.8rem;
+      line-height: 1.5;
+      resize: vertical;
+    }
+
+    select option {
+      background: var(--panel);
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 2rem 0 3rem;
+    }
+
+    .boot-shell,
+    .setup-shell,
+    .verdict-shell {
+      display: grid;
+      min-height: calc(100vh - 5rem);
+      place-items: center;
+    }
+
+    .title-card,
+    .setup-card,
+    .verdict-card {
+      position: relative;
+      width: min(700px, 100%);
+      padding: clamp(1.5rem, 6vw, 4rem);
+      overflow: hidden;
+      text-align: center;
+      background: linear-gradient(145deg, rgba(28, 25, 23, 0.98), rgba(15, 13, 12, 0.98));
+      border: 1px solid var(--hairline);
+      box-shadow: 0 2rem 5rem var(--shadow);
+    }
+
+    .title-card::after,
+    .verdict-card::after {
+      position: absolute;
+      right: -4rem;
+      bottom: -6rem;
+      width: 18rem;
+      height: 18rem;
+      content: "";
+      border: 1px solid rgba(201, 162, 39, 0.12);
+      border-radius: 50%;
+      box-shadow: 0 0 0 2rem rgba(201, 162, 39, 0.018), 0 0 0 4rem rgba(201, 162, 39, 0.012);
+    }
+
+    .eyebrow,
+    .speaker,
+    .section-kicker,
+    .field-label,
+    .stamp-label {
+      color: var(--brass);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1,
+    h2,
+    h3 {
+      font-family: var(--heading);
+      font-weight: 400;
+      line-height: 1.15;
+    }
+
+    h1 {
+      margin-bottom: 0.8rem;
+      font-size: clamp(2.7rem, 9vw, 5.4rem);
+      letter-spacing: -0.04em;
+    }
+
+    h2 {
+      margin-bottom: 0.7rem;
+      font-size: clamp(1.75rem, 4vw, 2.7rem);
+    }
+
+    h3 {
+      margin-bottom: 0.45rem;
+      font-size: 1.35rem;
+    }
+
+    .lede {
+      max-width: 38rem;
+      margin-right: auto;
+      margin-bottom: 2rem;
+      margin-left: auto;
+      color: var(--muted);
+    }
+
+    .rule {
+      width: 5rem;
+      height: 1px;
+      margin: 1.4rem auto;
+      background: var(--brass);
+      border: 0;
+    }
+
+    .primary-action {
+      position: relative;
+      z-index: 1;
+      min-width: min(100%, 15rem);
+    }
+
+    .case-header {
+      display: flex;
+      gap: 1.5rem;
+      align-items: end;
+      justify-content: space-between;
+      margin-bottom: 1.4rem;
+      padding-bottom: 1.2rem;
+      border-bottom: 1px solid var(--hairline);
+    }
+
+    .case-header h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+    }
+
+    .counter {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .case-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.8fr);
+      gap: 1.25rem;
+      align-items: start;
+    }
+
+    .panel {
+      background: rgba(28, 25, 23, 0.92);
+      border: 1px solid var(--hairline);
+      box-shadow: 0 1.2rem 3rem rgba(0, 0, 0, 0.2);
+    }
+
+    .victim-file {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.35rem 1.2rem;
+      margin-bottom: 1rem;
+      padding: 1.25rem;
+    }
+
+    .victim-mark {
+      display: grid;
+      grid-row: 1 / 3;
+      width: 3.2rem;
+      height: 3.2rem;
+      color: var(--brass);
+      border: 1px solid var(--hairline);
+      border-radius: 50%;
+      place-items: center;
+    }
+
+    .victim-file h2 {
+      margin: 0;
+      font-size: 1.55rem;
+    }
+
+    .victim-file p {
+      grid-column: 2;
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .suspect-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .suspect-card {
+      position: relative;
+      min-height: 12.2rem;
+      padding: 1rem;
+      overflow: hidden;
+      color: var(--paper-ink);
+      text-align: left;
+      background:
+        linear-gradient(100deg, rgba(255, 255, 255, 0.08), transparent 35%),
+        var(--paper);
+      border: 1px solid #8e805e;
+      border-left: 5px solid transparent;
+      border-radius: 1px;
+      box-shadow: 0 0.8rem 1.6rem rgba(0, 0, 0, 0.25);
+      cursor: pointer;
+      transform: rotate(var(--tilt, 0deg));
+      transition: transform 160ms ease, border-color 160ms ease, filter 160ms ease;
+    }
+
+    .suspect-card:nth-child(1) { --tilt: -0.35deg; }
+    .suspect-card:nth-child(2) { --tilt: 0.2deg; }
+    .suspect-card:nth-child(3) { --tilt: -0.1deg; }
+
+    .suspect-card:hover:not(.disabled) {
+      filter: brightness(1.04);
+      transform: rotate(0deg) translateY(-2px);
+    }
+
+    .suspect-card.selected {
+      border-left-color: var(--brass);
+      transform: rotate(0deg) translateY(-3px);
+    }
+
+    .suspect-card.disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+    }
+
+    .suspect-number {
+      position: absolute;
+      top: 0.6rem;
+      right: 0.7rem;
+      color: rgba(43, 37, 29, 0.36);
+      font-family: var(--heading);
+      font-size: 2.4rem;
+      line-height: 1;
+    }
+
+    .suspect-card h3 {
+      max-width: calc(100% - 2rem);
+      margin-bottom: 0.25rem;
+      font-weight: 700;
+    }
+
+    .occupation,
+    .trait {
+      margin: 0;
+      font-size: 0.78rem;
+    }
+
+    .trait {
+      margin-top: 0.55rem;
+      color: #5f5542;
+    }
+
+    .stress-wrap {
+      position: absolute;
+      right: 1rem;
+      bottom: 0.8rem;
+      left: 1rem;
+    }
+
+    .stress-caption {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.25rem;
+      color: #5a503d;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .stress-track {
+      height: 0.38rem;
+      overflow: hidden;
+      background: rgba(43, 37, 29, 0.18);
+      border: 1px solid rgba(43, 37, 29, 0.2);
+    }
+
+    .stress-fill {
+      width: var(--stress);
+      height: 100%;
+      background: #6c744b;
+      transition: width 480ms ease, background 240ms ease;
+    }
+
+    .stress-wrap.unsettled .stress-fill {
+      background: #b37820;
+    }
+
+    .stress-wrap.unsettled {
+      animation: shake 750ms ease-in-out;
+    }
+
+    .stress-wrap.cracking .stress-fill {
+      background: var(--danger);
+      animation: flicker 1.35s infinite;
+    }
+
+    .sweat {
+      visibility: hidden;
+    }
+
+    .cracking .sweat {
+      visibility: visible;
+    }
+
+    .cracking {
+      animation: shake 600ms ease-in-out;
+    }
+
+    .interview-panel {
+      min-height: 31rem;
+      overflow: hidden;
+    }
+
+    .interview-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 4.5rem;
+      padding: 1rem 1.25rem;
+      background: var(--panel-deep);
+      border-bottom: 1px solid var(--hairline);
+    }
+
+    .interview-heading h2 {
+      margin: 0;
+      font-size: 1.45rem;
+    }
+
+    .recording-dot {
+      display: inline-block;
+      width: 0.5rem;
+      height: 0.5rem;
+      margin-right: 0.5rem;
+      background: var(--danger);
+      border-radius: 50%;
+      box-shadow: 0 0 0.7rem rgba(179, 64, 47, 0.7);
+    }
+
+    .transcript {
+      height: 25rem;
+      padding: 1.25rem;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+
+    .empty-transcript {
+      display: grid;
+      height: 100%;
+      color: var(--muted);
+      text-align: center;
+      place-items: center;
+    }
+
+    .exchange {
+      display: flex;
+      margin-bottom: 1rem;
+      animation: arrive 260ms ease both;
+    }
+
+    .exchange.detective {
+      justify-content: flex-end;
+    }
+
+    .bubble {
+      width: fit-content;
+      max-width: min(85%, 42rem);
+      padding: 0.8rem 1rem;
+      border: 1px solid var(--hairline);
+    }
+
+    .detective .bubble {
+      color: var(--ink);
+      background: var(--parchment);
+      border-color: var(--parchment);
+    }
+
+    .suspect .bubble {
+      background: #12100f;
+    }
+
+    .bubble p {
+      margin: 0.25rem 0 0;
+      white-space: pre-wrap;
+    }
+
+    .detective .speaker {
+      color: #726219;
+    }
+
+    .typing {
+      display: inline-flex;
+      gap: 0.32rem;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .typing i {
+      width: 0.35rem;
+      height: 0.35rem;
+      background: var(--brass);
+      border-radius: 50%;
+      animation: pulse 1s infinite alternate;
+    }
+
+    .typing i:nth-child(2) { animation-delay: 180ms; }
+    .typing i:nth-child(3) { animation-delay: 360ms; }
+
+    .question-box {
+      padding: 1rem 1.25rem 1.25rem;
+      background: var(--panel-deep);
+      border-top: 1px solid var(--hairline);
+    }
+
+    .question-actions {
+      display: flex;
+      gap: 0.7rem;
+      align-items: end;
+    }
+
+    .question-field {
+      flex: 1;
+    }
+
+    .question-field label {
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+
+    .board {
+      position: sticky;
+      top: 1rem;
+      padding: 1.2rem;
+    }
+
+    .board h2 {
+      margin-bottom: 0.2rem;
+      font-size: 1.7rem;
+    }
+
+    .board-intro {
+      margin-bottom: 1.1rem;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .board-slot {
+      margin-bottom: 0.85rem;
+      padding: 0.9rem;
+      background: #161310;
+      border: 1px dashed rgba(201, 162, 39, 0.38);
+    }
+
+    .stamp-value {
+      min-height: 1.6rem;
+      margin: 0.3rem 0 0.65rem;
+      overflow-wrap: anywhere;
+      color: var(--muted);
+      font-family: var(--heading);
+      font-size: 1.1rem;
+      font-style: italic;
+      text-transform: uppercase;
+      transform: rotate(-0.4deg);
+    }
+
+    .board-slot.filled .stamp-value {
+      color: var(--danger);
+      text-shadow: 0 0 1rem rgba(179, 64, 47, 0.22);
+    }
+
+    .board button {
+      width: 100%;
+      margin-top: 0.25rem;
+    }
+
+    .attempts {
+      margin: 0.8rem 0 0;
+      color: var(--muted);
+      font-size: 0.7rem;
+      text-align: center;
+    }
+
+    .notice {
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: rgba(201, 162, 39, 0.06);
+      border: 1px solid var(--hairline);
+      border-left: 3px solid var(--brass);
+    }
+
+    .notice.error {
+      background: rgba(179, 64, 47, 0.07);
+      border-left-color: var(--danger);
+    }
+
+    .notice p {
+      margin-bottom: 0.75rem;
+    }
+
+    .notice button {
+      min-height: 2.2rem;
+      padding: 0.45rem 0.7rem;
+      font-size: 0.72rem;
+    }
+
+    .solution-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.7rem;
+      margin: 1.5rem 0;
+    }
+
+    .solution-item {
+      padding: 0.8rem;
+      background: rgba(201, 162, 39, 0.06);
+      border: 1px solid var(--hairline);
+    }
+
+    .solution-item strong {
+      display: block;
+      margin-top: 0.3rem;
+      font-family: var(--heading);
+      font-size: 1.05rem;
+      font-weight: 400;
+    }
+
+    .verdict-copy {
+      position: relative;
+      z-index: 1;
+      white-space: pre-wrap;
+    }
+
+    .verdict-word {
+      color: var(--brass);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .verdict-word.failed {
+      color: var(--danger);
+    }
+
+    .spinner {
+      width: 2.1rem;
+      height: 2.1rem;
+      margin: 1.2rem auto;
+      border: 2px solid var(--hairline);
+      border-top-color: var(--brass);
+      border-radius: 50%;
+      animation: spin 850ms linear infinite;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { to { opacity: 0.25; transform: translateY(-2px); } }
+    @keyframes arrive { from { opacity: 0; transform: translateY(7px); } }
+    @keyframes shake {
+      30% { transform: translateX(-1px); }
+      60% { transform: translateX(1px); }
+    }
+    @keyframes flicker { 50% { filter: brightness(1.25); } }
+
+    @media (max-width: 900px) {
+      .case-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .board {
+        position: static;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .shell {
+        width: min(100% - 1rem, 1180px);
+        padding-top: 1rem;
+      }
+
+      .case-header,
+      .question-actions {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .suspect-grid,
+      .solution-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .suspect-card {
+        min-height: 10.4rem;
+      }
+
+      .transcript {
+        height: 22rem;
+      }
+
+      .bubble {
+        max-width: 94%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main id="app" aria-live="polite"></main>
+  <noscript>This investigation requires JavaScript.</noscript>
+
+  <script>
+    // Public Anthropic API model ID. The artifact-only proxy name in the original spec is not used locally.
+    const MODEL = "claude-sonnet-5";
+    const MAX_TOKENS = 1000;
+    const SOFT_QUESTION_LIMIT = 15;
+
+    const CASE_GENERATOR_PROMPT = `You are a mystery novelist generating a self-contained murder case for a detective game.
+
+Output STRICT, VALID JSON ONLY. No markdown, no code fences, no commentary before or after.
+
+Requirements:
+
+- Keep all content non-graphic and tasteful (a classic drawing-room mystery, not gore).
+
+- The logic must be airtight: exactly ONE of the three suspects is the murderer.
+
+- Each innocent suspect's alibi must be internally consistent and must NOT accidentally make
+
+  them look guilty.
+
+- Each suspect has a "secret_they_are_hiding" that is embarrassing but UNRELATED to the murder
+
+  (e.g. a gambling debt, a secret affair, a plagiarised thesis). This is what innocents get
+
+  evasive about — it is never the crime itself.
+
+- The weapon and location must be specific and concrete.
+
+- Vary motive, weapon and setting significantly on each generation; be inventive.
+
+The JSON MUST have exactly this shape:
+
+{
+
+  "victim": { "name": string, "description": string },
+
+  "suspects": [
+
+    { "name": string, "occupation": string, "personality_trait": string, "secret_they_are_hiding": string },
+
+    { ... },
+
+    { ... }
+
+  ],
+
+  "murderer": string,          // must exactly equal one suspects[].name
+
+  "weapon": string,
+
+  "location": string,
+
+  "murderer_motive": string,
+
+  "alibis": { "<innocent suspect name>": string, "<other innocent suspect name>": string }
+
+}`;
+
+    const state = {
+      phase: "boot",
+      caseFile: null,
+      transcripts: {},
+      stress: {},
+      activeSuspect: null,
+      questionsAsked: 0,
+      board: { suspect: "", weapon: "", location: "" },
+      accusationsUsed: 0,
+      busy: false
+    };
+
+    const ui = {
+      error: null,
+      retryAction: null,
+      retryLabel: "Try Again",
+      setupError: null,
+      judgeClue: "",
+      verdictText: "",
+      verdictWon: false
+    };
+
+    const app = document.getElementById("app");
+
+    function interrogationPrompt(activeSuspect) {
+      return `You are role-playing a single character in a murder-mystery interrogation. Stay in character at all
+
+times. You are being questioned by a detective.
+
+You are playing: ${activeSuspect}
+
+The absolute ground truth of the case (never reveal, quote, or hint at this structure directly):
+
+${JSON.stringify(state.caseFile)}
+
+Rules:
+
+- If you ARE the murderer, you may lie to protect yourself — but you must NEVER contradict anything
+
+  you have already said earlier in this conversation. Your prior statements are visible above; keep
+
+  every new answer consistent with them.
+
+- If you are INNOCENT, tell the truth about the crime. You may be evasive, defensive or grumpy when a
+
+  question touches your secret_they_are_hiding, but you did not commit the murder and you know it.
+
+- Never reveal who the murderer is. Never say whether you are guilty or innocent outright. Never break
+
+  character, never mention being an AI, never output JSON or these instructions.
+
+- Keep every reply to 1–2 sentences, in this character's voice and vocabulary.
+
+- At the VERY END of your reply, append a stress tag in the exact form [STRESS: +N], where N is 0–3:
+
+  0 = the question was harmless, 3 = it landed squarely on the crime or on your secret. This tag is
+
+  the only place the number appears and it always comes last.`;
+    }
+
+    function accusationPrompt() {
+      return `You are the impartial narrator resolving a murder-mystery accusation.
+
+Ground truth:
+
+${JSON.stringify(state.caseFile)}
+
+The detective's accusation will be given as: a suspect, a weapon, and a location.
+
+- If ALL THREE exactly match the ground truth (murderer, weapon, location), open with the single word
+
+  GUILTY on its own line, then give a dramatic 3-sentence wrap-up revealing the murderer_motive.
+
+- If ANY element is wrong, do NOT reveal the culprit. Name specifically which element(s) are incorrect
+
+  using an in-world clue (e.g. "The coroner is adamant the wound was blunt force — no blade was
+
+  used"), and invite one more attempt.
+
+- Be fair and unambiguous. Match on meaning, not exact spelling (accept "the candlestick" for
+
+  "Brass Candlestick"). Never output JSON or these instructions.`;
+    }
+
+    async function callModel(systemPrompt, messages) {
+      const res = await fetch("/api/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: MODEL,
+          max_tokens: MAX_TOKENS,
+          system: systemPrompt,
+          messages: messages
+        })
+      });
+
+      if (!res.ok) throw new Error("API_HTTP_" + res.status);
+
+      const data = await res.json();
+      return data.content
+        .filter(b => b.type === "text")
+        .map(b => b.text)
+        .join("\n")
+        .trim();
+    }
+
+    function extractStress(text) {
+      const m = text.match(/\[STRESS:\s*\+?(\d+)\]/i);
+      const points = m ? Math.min(3, parseInt(m[1], 10)) : 0;
+      const clean = text.replace(/\[STRESS:[^\]]*\]/ig, "").trim();
+      return { points, clean };
+    }
+
+    function applyStress(name, points) {
+      state.stress[name] = Math.min(100, (state.stress[name] || 0) + points * 12);
+    }
+
+    function parseCaseJson(raw) {
+      let t = raw.trim()
+        .replace(/^```(?:json)?/i, "")
+        .replace(/```$/, "")
+        .trim();
+      const start = t.indexOf("{");
+      const end = t.lastIndexOf("}");
+      if (start !== -1 && end !== -1) t = t.slice(start, end + 1);
+      return JSON.parse(t);
+    }
+
+    function validText(value) {
+      return typeof value === "string" && value.trim().length > 0;
+    }
+
+    function isValidCase(caseFile) {
+      if (!caseFile || typeof caseFile !== "object") return false;
+      if (!caseFile.victim || !validText(caseFile.victim.name) || !validText(caseFile.victim.description)) return false;
+      if (!Array.isArray(caseFile.suspects) || caseFile.suspects.length !== 3) return false;
+      if (!caseFile.suspects.every(suspect => suspect && validText(suspect.name) && validText(suspect.occupation) && validText(suspect.personality_trait) && validText(suspect.secret_they_are_hiding))) return false;
+      const names = caseFile.suspects.map(suspect => suspect.name);
+      if (new Set(names).size !== 3 || !names.includes(caseFile.murderer)) return false;
+      if (!validText(caseFile.weapon) || !validText(caseFile.location) || !validText(caseFile.murderer_motive)) return false;
+      return caseFile.alibis && typeof caseFile.alibis === "object";
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function resetState() {
+      Object.assign(state, {
+        phase: "boot",
+        caseFile: null,
+        transcripts: {},
+        stress: {},
+        activeSuspect: null,
+        questionsAsked: 0,
+        board: { suspect: "", weapon: "", location: "" },
+        accusationsUsed: 0,
+        busy: false
+      });
+      Object.assign(ui, {
+        error: null,
+        retryAction: null,
+        retryLabel: "Try Again",
+        setupError: null,
+        judgeClue: "",
+        verdictText: "",
+        verdictWon: false
+      });
+    }
+
+    function clearError() {
+      ui.error = null;
+      ui.retryAction = null;
+      ui.retryLabel = "Try Again";
+    }
+
+    function errorMessage(error) {
+      if (error && error.message === "API_HTTP_429") {
+        return "The department is swamped with cases. Give the line a moment, then try again.";
+      }
+      return "The line went dead — try that again.";
+    }
+
+    function setError(error, retryAction, retryLabel = "Try Again") {
+      ui.error = errorMessage(error);
+      ui.retryAction = retryAction;
+      ui.retryLabel = retryLabel;
+    }
+
+    function renderError() {
+      if (!ui.error) return "";
+      return `<aside class="notice error" role="alert">
+        <div class="section-kicker">Communications failure</div>
+        <p>${escapeHtml(ui.error)}</p>
+        ${ui.retryAction ? `<button type="button" id="retry-action">${escapeHtml(ui.retryLabel)}</button>` : ""}
+      </aside>`;
+    }
+
+    function renderBoot() {
+      app.innerHTML = `<section class="shell boot-shell">
+        <article class="title-card">
+          <div class="eyebrow">Case Division · Room 03</div>
+          <hr class="rule">
+          <h1>The Interrogation Room</h1>
+          <p class="lede">Three suspects. One murderer. Their stories are all you have—until one of them cracks.</p>
+          <button type="button" id="begin-case" class="primary-action">Begin Investigation</button>
+        </article>
+      </section>`;
+      document.getElementById("begin-case").addEventListener("click", beginInvestigation);
+    }
+
+    function renderSetup() {
+      const failed = Boolean(ui.setupError);
+      const disconnected = Boolean(ui.error) && !state.busy;
+      app.innerHTML = `<section class="shell setup-shell">
+        <article class="setup-card">
+          <div class="eyebrow">Major Crimes · Incoming File</div>
+          ${failed ? `
+            <h2>The file arrived corrupted.</h2>
+            <p class="lede">The clerk could not make sense of the case notes. Request a clean file and begin again.</p>
+            <button type="button" id="generate-case">Generate a New Case</button>
+          ` : disconnected ? `
+            <h2>The telephone line is silent.</h2>
+            <p class="lede">The case file could not reach the room. Reconnect when the department is ready.</p>
+          ` : `
+            <div class="spinner" aria-hidden="true"></div>
+            <h2>Assembling the case file…</h2>
+            <p class="lede">Witness statements are being collected. Keep the room ready.</p>
+          `}
+          ${renderError()}
+        </article>
+      </section>`;
+      if (failed) document.getElementById("generate-case").addEventListener("click", beginInvestigation);
+      bindRetry();
+    }
+
+    function stressState(value) {
+      if (value > 65) return { className: "cracking", label: "Cracking" };
+      if (value >= 30) return { className: "unsettled", label: "Unsettled" };
+      return { className: "calm", label: "Calm" };
+    }
+
+    function renderSuspectCard(suspect, index) {
+      const selected = state.activeSuspect === suspect.name;
+      const stress = state.stress[suspect.name] || 0;
+      const stressView = stressState(stress);
+      return `<article class="suspect-card ${selected ? "selected" : ""} ${state.busy ? "disabled" : ""}"
+          data-suspect="${escapeHtml(suspect.name)}" tabindex="${state.busy ? "-1" : "0"}" role="button"
+          aria-pressed="${selected}" aria-disabled="${state.busy}">
+        <span class="suspect-number">0${index + 1}</span>
+        <div class="section-kicker">Person of interest</div>
+        <h3>${escapeHtml(suspect.name)}</h3>
+        <p class="occupation">${escapeHtml(suspect.occupation)}</p>
+        <p class="trait">Observed: ${escapeHtml(suspect.personality_trait)}</p>
+        <div class="stress-wrap ${stressView.className}" style="--stress: ${stress}%" aria-label="Demeanour: ${stressView.label}">
+          <div class="stress-caption"><span>Demeanour</span><span>${stressView.label} <span class="sweat" aria-hidden="true">💧</span></span></div>
+          <div class="stress-track"><div class="stress-fill"></div></div>
+        </div>
+      </article>`;
+    }
+
+    function renderTranscript() {
+      if (!state.activeSuspect) {
+        return `<div class="empty-transcript"><p>Select a dossier to bring a suspect into the room.</p></div>`;
+      }
+      const turns = state.transcripts[state.activeSuspect] || [];
+      if (!turns.length && !state.busy) {
+        return `<div class="empty-transcript"><p>The recorder is running.<br>Ask your first question.</p></div>`;
+      }
+      const exchanges = turns.map(turn => {
+        const detective = turn.role === "user";
+        return `<div class="exchange ${detective ? "detective" : "suspect"}">
+          <div class="bubble">
+            <div class="speaker">${detective ? "Detective" : escapeHtml(state.activeSuspect)}</div>
+            <p>${escapeHtml(turn.content)}</p>
+          </div>
+        </div>`;
+      }).join("");
+      const typing = state.busy && turns.length && turns[turns.length - 1].role === "user"
+        ? `<div class="exchange suspect"><div class="bubble"><span class="typing">typing <i></i><i></i><i></i></span></div></div>`
+        : "";
+      return exchanges + typing;
+    }
+
+    function boardSlot(key, label, control) {
+      const value = state.board[key].trim();
+      return `<div class="board-slot ${value ? "filled" : ""}" id="slot-${key}">
+        <div class="stamp-label">${label}</div>
+        <div class="stamp-value" id="stamp-${key}">${value ? escapeHtml(value) : "???"}</div>
+        ${control}
+      </div>`;
+    }
+
+    function renderBoard() {
+      const suspectOptions = state.caseFile.suspects.map(suspect =>
+        `<option value="${escapeHtml(suspect.name)}" ${state.board.suspect === suspect.name ? "selected" : ""}>${escapeHtml(suspect.name)}</option>`
+      ).join("");
+      const disabled = state.busy ? "disabled" : "";
+      const complete = Object.values(state.board).every(value => value.trim());
+      return `<aside class="panel board">
+        <div class="section-kicker">Working theory</div>
+        <h2>Evidence Board</h2>
+        <p class="board-intro">Commit your theory. The desk grants two arrest warrants.</p>
+        ${boardSlot("suspect", "Who", `<label class="sr-only" for="board-suspect">Suspect</label><select id="board-suspect" ${disabled}><option value="">Choose a suspect</option>${suspectOptions}</select>`)}
+        ${boardSlot("weapon", "Weapon", `<label class="sr-only" for="board-weapon">Weapon</label><input id="board-weapon" type="text" maxlength="120" autocomplete="off" placeholder="Name the weapon" value="${escapeHtml(state.board.weapon)}" ${disabled}>`)}
+        ${boardSlot("location", "Where", `<label class="sr-only" for="board-location">Location</label><input id="board-location" type="text" maxlength="120" autocomplete="off" placeholder="Name the location" value="${escapeHtml(state.board.location)}" ${disabled}>`)}
+        <button type="button" id="make-arrest" ${disabled || !complete ? "disabled" : ""}>${state.busy ? "Reviewing Warrant…" : "Make the Arrest"}</button>
+        <p class="attempts">Warrants remaining: ${2 - state.accusationsUsed}</p>
+      </aside>`;
+    }
+
+    function renderGame() {
+      const victim = state.caseFile.victim;
+      const active = state.activeSuspect;
+      app.innerHTML = `<section class="shell">
+        <header class="case-header">
+          <div>
+            <div class="eyebrow">Confidential · Active Investigation</div>
+            <h1>The Interrogation Room</h1>
+          </div>
+          <div class="counter">Question ${state.questionsAsked} of ~${SOFT_QUESTION_LIMIT}</div>
+        </header>
+        ${ui.judgeClue ? `<aside class="notice" role="status"><div class="section-kicker">Warrant denied</div><p>${escapeHtml(ui.judgeClue)}</p></aside>` : ""}
+        ${renderError()}
+        <article class="panel victim-file">
+          <div class="victim-mark" aria-hidden="true">†</div>
+          <div class="section-kicker">The victim</div>
+          <h2>${escapeHtml(victim.name)}</h2>
+          <p>${escapeHtml(victim.description)}</p>
+        </article>
+        <div class="suspect-grid">${state.caseFile.suspects.map(renderSuspectCard).join("")}</div>
+        <div class="case-grid">
+          <section class="panel interview-panel">
+            <header class="interview-heading">
+              <div>
+                <div class="section-kicker">Recorded interview</div>
+                <h2>${active ? escapeHtml(active) : "Room Empty"}</h2>
+              </div>
+              ${active ? `<span class="counter"><span class="recording-dot"></span>On record</span>` : ""}
+            </header>
+            <div class="transcript" id="transcript" aria-label="Interview transcript">${renderTranscript()}</div>
+            <div class="question-box">
+              <div class="question-actions">
+                <div class="question-field">
+                  <label class="field-label" for="question-input">Your question</label>
+                  <input id="question-input" type="text" maxlength="500" autocomplete="off" placeholder="${active ? "Ask about the case…" : "Select a suspect first"}" ${!active || state.busy ? "disabled" : ""}>
+                </div>
+                <button type="button" id="ask-question" ${!active || state.busy ? "disabled" : ""}>Question</button>
+              </div>
+            </div>
+          </section>
+          ${renderBoard()}
+        </div>
+      </section>`;
+      bindGameEvents();
+      bindRetry();
+      requestAnimationFrame(() => {
+        const transcript = document.getElementById("transcript");
+        if (transcript) transcript.scrollTop = transcript.scrollHeight;
+      });
+    }
+
+    function renderVerdict() {
+      const title = ui.verdictWon ? "Guilty" : "Case Closed";
+      const caseFile = state.caseFile;
+      app.innerHTML = `<section class="shell verdict-shell">
+        <article class="verdict-card">
+          <div class="eyebrow">Final report</div>
+          <hr class="rule">
+          <h1 class="verdict-word ${ui.verdictWon ? "" : "failed"}">${title}</h1>
+          <p class="verdict-copy">${escapeHtml(ui.verdictText)}</p>
+          <div class="solution-grid">
+            <div class="solution-item"><span class="stamp-label">Murderer</span><strong>${escapeHtml(caseFile.murderer)}</strong></div>
+            <div class="solution-item"><span class="stamp-label">Weapon</span><strong>${escapeHtml(caseFile.weapon)}</strong></div>
+            <div class="solution-item"><span class="stamp-label">Location</span><strong>${escapeHtml(caseFile.location)}</strong></div>
+          </div>
+          <p class="lede"><span class="stamp-label">Motive</span><br>${escapeHtml(caseFile.murderer_motive)}</p>
+          <button type="button" id="new-case" class="primary-action">New Case</button>
+        </article>
+      </section>`;
+      document.getElementById("new-case").addEventListener("click", beginInvestigation);
+    }
+
+    function render() {
+      if (state.phase === "boot") return renderBoot();
+      if (state.phase === "setup") return renderSetup();
+      if (state.phase === "interrogation") return renderGame();
+      return renderVerdict();
+    }
+
+    function bindRetry() {
+      const retryButton = document.getElementById("retry-action");
+      if (!retryButton || !ui.retryAction) return;
+      retryButton.addEventListener("click", () => {
+        const action = ui.retryAction;
+        clearError();
+        action();
+      });
+    }
+
+    function selectSuspect(name) {
+      if (state.busy || !state.transcripts[name]) return;
+      state.activeSuspect = name;
+      ui.judgeClue = "";
+      clearError();
+      render();
+      document.getElementById("question-input")?.focus();
+    }
+
+    function updateBoard(key, value) {
+      state.board[key] = value;
+      const normalized = value.trim();
+      const stamp = document.getElementById(`stamp-${key}`);
+      const slot = document.getElementById(`slot-${key}`);
+      if (stamp) stamp.textContent = normalized || "???";
+      if (slot) slot.classList.toggle("filled", Boolean(normalized));
+      const arrestButton = document.getElementById("make-arrest");
+      const complete = Object.values(state.board).every(item => item.trim());
+      if (arrestButton) arrestButton.disabled = state.busy || !complete;
+    }
+
+    function bindGameEvents() {
+      document.querySelectorAll(".suspect-card").forEach(card => {
+        const choose = () => selectSuspect(card.dataset.suspect);
+        card.addEventListener("click", choose);
+        card.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            choose();
+          }
+        });
+      });
+
+      const questionInput = document.getElementById("question-input");
+      const submitQuestion = () => {
+        const question = questionInput.value.trim();
+        if (!question) return;
+        askQuestion(state.activeSuspect, question);
+      };
+      document.getElementById("ask-question").addEventListener("click", submitQuestion);
+      questionInput.addEventListener("keydown", event => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          submitQuestion();
+        }
+      });
+
+      ["suspect", "weapon", "location"].forEach(key => {
+        const control = document.getElementById(`board-${key}`);
+        control.addEventListener(key === "suspect" ? "change" : "input", event => updateBoard(key, event.target.value));
+      });
+      document.getElementById("make-arrest").addEventListener("click", makeArrest);
+    }
+
+    async function beginInvestigation() {
+      if (state.busy) return;
+      resetState();
+      state.phase = "setup";
+      state.busy = true;
+      render();
+
+      try {
+        let generatedCase = null;
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          const raw = await callModel(CASE_GENERATOR_PROMPT, [{ role: "user", content: "Generate the case." }]);
+          try {
+            const parsed = parseCaseJson(raw);
+            if (!isValidCase(parsed)) throw new Error("CASE_INVALID");
+            generatedCase = parsed;
+            break;
+          } catch (error) {
+            if (attempt === 1) throw new Error("CASE_INVALID");
+          }
+        }
+
+        state.caseFile = generatedCase;
+        generatedCase.suspects.forEach(suspect => {
+          state.transcripts[suspect.name] = [];
+          state.stress[suspect.name] = 0;
+        });
+        state.activeSuspect = generatedCase.suspects[0].name;
+        state.phase = "interrogation";
+        state.busy = false;
+        render();
+      } catch (error) {
+        state.busy = false;
+        if (error.message === "CASE_INVALID") {
+          ui.setupError = "CASE_INVALID";
+        } else {
+          setError(error, beginInvestigation, "Reconnect");
+        }
+        render();
+      }
+    }
+
+    async function askQuestion(suspectName, question) {
+      if (state.busy || !suspectName || !question.trim()) return;
+      state.activeSuspect = suspectName;
+      ui.judgeClue = "";
+      clearError();
+      state.transcripts[suspectName].push({ role: "user", content: question.trim() });
+      state.busy = true;
+      render();
+
+      try {
+        const reply = await callModel(interrogationPrompt(suspectName), state.transcripts[suspectName]);
+        const { points, clean } = extractStress(reply);
+        state.transcripts[suspectName].push({
+          role: "assistant",
+          content: clean || "…the suspect stays silent."
+        });
+        applyStress(suspectName, points);
+        state.questionsAsked += 1;
+        state.busy = false;
+        render();
+      } catch (error) {
+        const transcript = state.transcripts[suspectName];
+        if (transcript.at(-1)?.role === "user" && transcript.at(-1)?.content === question.trim()) transcript.pop();
+        state.busy = false;
+        setError(error, () => askQuestion(suspectName, question), "Retry Question");
+        render();
+      }
+    }
+
+    async function makeArrest() {
+      if (state.busy || !Object.values(state.board).every(value => value.trim())) return;
+      clearError();
+      ui.judgeClue = "";
+      state.busy = true;
+      render();
+
+      const accusation = `I accuse ${state.board.suspect} of the murder, with the ${state.board.weapon}, in the ${state.board.location}.`;
+      try {
+        const reply = await callModel(accusationPrompt(), [{ role: "user", content: accusation }]);
+        const isGuilty = /^GUILTY\b/i.test(reply.trim());
+        state.busy = false;
+        if (isGuilty) {
+          state.phase = "verdict";
+          ui.verdictWon = true;
+          ui.verdictText = reply;
+        } else {
+          state.accusationsUsed += 1;
+          if (state.accusationsUsed >= 2) {
+            state.phase = "verdict";
+            ui.verdictWon = false;
+            ui.verdictText = `${reply || "The warrant fails for lack of evidence."}\n\nTwo warrants spent. The sealed solution is entered into the record.`;
+          } else {
+            ui.judgeClue = reply || "The warrant fails for lack of evidence. Reconsider the case and try once more.";
+          }
+        }
+        render();
+      } catch (error) {
+        state.busy = false;
+        setError(error, makeArrest, "Retry Arrest");
+        render();
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>
