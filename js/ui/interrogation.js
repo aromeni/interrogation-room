@@ -1,0 +1,157 @@
+import { escapeHtml } from "../escape.js";
+import { stressBand } from "../state.js";
+import { SOFT_QUESTION_LIMIT, MAX_ACCUSATIONS } from "../config.js";
+import { renderError, bindRetry } from "./setup.js";
+
+function renderSuspectCard(suspect, index, state) {
+  const selected = state.activeSuspect === suspect.name;
+  const stress = state.stress[suspect.name] || 0;
+  const stressView = stressBand(stress);
+  return `<article class="suspect-card ${selected ? "selected" : ""} ${state.busy ? "disabled" : ""}"
+      data-suspect="${escapeHtml(suspect.name)}" tabindex="${state.busy ? "-1" : "0"}" role="button"
+      aria-pressed="${selected}" aria-disabled="${state.busy}">
+    <span class="suspect-number">0${index + 1}</span>
+    <div class="section-kicker">Person of interest</div>
+    <h3>${escapeHtml(suspect.name)}</h3>
+    <p class="occupation">${escapeHtml(suspect.occupation)}</p>
+    <p class="trait">Observed: ${escapeHtml(suspect.personality_trait)}</p>
+    <div class="stress-wrap ${stressView.className}" style="--stress: ${stress}%" aria-label="Demeanour: ${stressView.label}">
+      <div class="stress-caption"><span>Demeanour</span><span>${stressView.label} <span class="sweat" aria-hidden="true">💧</span></span></div>
+      <div class="stress-track"><div class="stress-fill"></div></div>
+    </div>
+  </article>`;
+}
+
+function renderTranscript(state) {
+  if (!state.activeSuspect) {
+    return `<div class="empty-transcript"><p>Select a dossier to bring a suspect into the room.</p></div>`;
+  }
+  const turns = state.transcripts[state.activeSuspect] || [];
+  if (!turns.length && !state.busy) {
+    return `<div class="empty-transcript"><p>The recorder is running.<br>Ask your first question.</p></div>`;
+  }
+  const exchanges = turns.map(turn => {
+    const detective = turn.role === "user";
+    return `<div class="exchange ${detective ? "detective" : "suspect"}">
+      <div class="bubble">
+        <div class="speaker">${detective ? "Detective" : escapeHtml(state.activeSuspect)}</div>
+        <p>${escapeHtml(turn.content)}</p>
+      </div>
+    </div>`;
+  }).join("");
+  const typing = state.busy && turns.length && turns[turns.length - 1].role === "user"
+    ? `<div class="exchange suspect"><div class="bubble"><span class="typing">typing <i></i><i></i><i></i></span></div></div>`
+    : "";
+  return exchanges + typing;
+}
+
+function boardSlot(key, label, control, state) {
+  const value = state.board[key].trim();
+  return `<div class="board-slot ${value ? "filled" : ""}" id="slot-${key}">
+    <div class="stamp-label">${label}</div>
+    <div class="stamp-value" id="stamp-${key}">${value ? escapeHtml(value) : "???"}</div>
+    ${control}
+  </div>`;
+}
+
+function renderBoard(state) {
+  const suspectOptions = state.caseFile.suspects.map(suspect =>
+    `<option value="${escapeHtml(suspect.name)}" ${state.board.suspect === suspect.name ? "selected" : ""}>${escapeHtml(suspect.name)}</option>`
+  ).join("");
+  const disabled = state.busy ? "disabled" : "";
+  const complete = Object.values(state.board).every(value => value.trim());
+  return `<aside class="panel board">
+    <div class="section-kicker">Working theory</div>
+    <h2>Evidence Board</h2>
+    <p class="board-intro">Commit your theory. The desk grants two arrest warrants.</p>
+    ${boardSlot("suspect", "Who", `<label class="sr-only" for="board-suspect">Suspect</label><select id="board-suspect" ${disabled}><option value="">Choose a suspect</option>${suspectOptions}</select>`, state)}
+    ${boardSlot("weapon", "Weapon", `<label class="sr-only" for="board-weapon">Weapon</label><input id="board-weapon" type="text" maxlength="120" autocomplete="off" placeholder="Name the weapon" value="${escapeHtml(state.board.weapon)}" ${disabled}>`, state)}
+    ${boardSlot("location", "Where", `<label class="sr-only" for="board-location">Location</label><input id="board-location" type="text" maxlength="120" autocomplete="off" placeholder="Name the location" value="${escapeHtml(state.board.location)}" ${disabled}>`, state)}
+    <button type="button" id="make-arrest" ${disabled || !complete ? "disabled" : ""}>${state.busy ? "Reviewing Warrant…" : "Make the Arrest"}</button>
+    <p class="attempts">Warrants remaining: ${MAX_ACCUSATIONS - state.accusationsUsed}</p>
+  </aside>`;
+}
+
+function bindGameEvents(state, handlers) {
+  document.querySelectorAll(".suspect-card").forEach(card => {
+    const choose = () => handlers.selectSuspect(card.dataset.suspect);
+    card.addEventListener("click", choose);
+    card.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        choose();
+      }
+    });
+  });
+
+  const questionInput = document.getElementById("question-input");
+  const submitQuestion = () => {
+    const question = questionInput.value.trim();
+    if (!question) return;
+    handlers.askQuestion(state.activeSuspect, question);
+  };
+  document.getElementById("ask-question").addEventListener("click", submitQuestion);
+  questionInput.addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      submitQuestion();
+    }
+  });
+
+  ["suspect", "weapon", "location"].forEach(key => {
+    const control = document.getElementById(`board-${key}`);
+    control.addEventListener(key === "suspect" ? "change" : "input", event => handlers.updateBoard(key, event.target.value));
+  });
+  document.getElementById("make-arrest").addEventListener("click", handlers.makeArrest);
+}
+
+export function renderInterrogation(app, state, ui, handlers) {
+  const victim = state.caseFile.victim;
+  const active = state.activeSuspect;
+  app.innerHTML = `<section class="shell">
+    <header class="case-header">
+      <div>
+        <div class="eyebrow">Confidential · Active Investigation</div>
+        <h1>The Interrogation Room</h1>
+      </div>
+      <div class="counter">Question ${state.questionsAsked} of ~${SOFT_QUESTION_LIMIT}</div>
+    </header>
+    ${ui.judgeClue ? `<aside class="notice" role="status"><div class="section-kicker">Warrant denied</div><p>${escapeHtml(ui.judgeClue)}</p></aside>` : ""}
+    ${renderError(ui)}
+    <article class="panel victim-file">
+      <div class="victim-mark" aria-hidden="true">†</div>
+      <div class="section-kicker">The victim</div>
+      <h2>${escapeHtml(victim.name)}</h2>
+      <p>${escapeHtml(victim.description)}</p>
+    </article>
+    <div class="suspect-grid">${state.caseFile.suspects.map((suspect, index) => renderSuspectCard(suspect, index, state)).join("")}</div>
+    <div class="case-grid">
+      <section class="panel interview-panel">
+        <header class="interview-heading">
+          <div>
+            <div class="section-kicker">Recorded interview</div>
+            <h2>${active ? escapeHtml(active) : "Room Empty"}</h2>
+          </div>
+          ${active ? `<span class="counter"><span class="recording-dot"></span>On record</span>` : ""}
+        </header>
+        <div class="transcript" id="transcript" aria-label="Interview transcript" aria-live="polite" aria-atomic="false">${renderTranscript(state)}</div>
+        <div class="question-box">
+          <div class="question-actions">
+            <div class="question-field">
+              <label class="field-label" for="question-input">Your question</label>
+              <input id="question-input" type="text" maxlength="500" autocomplete="off" placeholder="${active ? "Ask about the case…" : "Select a suspect first"}" ${!active || state.busy ? "disabled" : ""}>
+            </div>
+            <button type="button" id="ask-question" ${!active || state.busy ? "disabled" : ""}>Question</button>
+          </div>
+        </div>
+      </section>
+      ${renderBoard(state)}
+    </div>
+  </section>`;
+  bindGameEvents(state, handlers);
+  bindRetry(ui, handlers);
+  requestAnimationFrame(() => {
+    const transcript = document.getElementById("transcript");
+    if (transcript) transcript.scrollTop = transcript.scrollHeight;
+  });
+}
