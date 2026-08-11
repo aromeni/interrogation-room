@@ -1,9 +1,13 @@
 'use strict';
 
-const http = require('node:http');
-const https = require('node:https');
-const fs = require('node:fs');
-const path = require('node:path');
+import http from "node:http";
+import https from "node:https";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { parsePort } from "./api/validate.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function loadEnvFile(filePath) {
   let source;
@@ -40,15 +44,16 @@ function loadEnvFile(filePath) {
   });
 }
 
+let PORT;
 try {
   loadEnvFile(path.join(__dirname, '.env'));
+  PORT = parsePort(process.env.PORT);
 } catch (error) {
   console.error(`Configuration error: ${error.message}`);
   process.exit(1);
 }
 
 const HOST = process.env.HOST || '127.0.0.1';
-const PORT = Number.parseInt(process.env.PORT || '3000', 10);
 const INDEX_PATH = path.join(__dirname, 'index.html');
 
 function sendJson(response, statusCode, payload) {
