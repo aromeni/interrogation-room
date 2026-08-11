@@ -97,3 +97,26 @@ export async function handleMessage(body, { apiKey, fetchImpl = fetch }) {
     return { status: 502, json: { error: "The case notes came back unreadable." } };
   }
 }
+
+export const MAX_BODY_BYTES = 256 * 1024;
+
+// An absent Origin means a same-origin or non-browser request. An empty
+// allowlist means local development, where the origin varies.
+export function isAllowedOrigin(origin, allowedOrigins) {
+  if (!origin) return true;
+  if (allowedOrigins.length === 0) return true;
+  return allowedOrigins.includes(origin);
+}
+
+// Requiring application/json forces a CORS preflight, which closes the
+// text/plain simple-request path that lets any page spend the key.
+export function assertPostable(headers) {
+  const contentType = headers["content-type"] || "";
+  if (!contentType.toLowerCase().startsWith("application/json")) {
+    throw new ValidationError("Content-Type must be application/json.", 415);
+  }
+  const declared = Number.parseInt(headers["content-length"] || "0", 10);
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+    throw new ValidationError("Request body is too large.", 413);
+  }
+}
