@@ -61,11 +61,13 @@ The spec's file layout lists `js/prompts.js — three system prompts + their JSO
 - Create: `package.json`
 - Create: `test/config.test.js`
 - Create: `api/validate.js`
-- Modify: `server.js:50-51` (PORT parsing)
+- Modify: `server.js:3-6` (CommonJS to ESM), `server.js:43-51` (env loading and PORT parsing)
 
 **Interfaces:**
 - Consumes: nothing.
 - Produces: `parsePort(raw: string | undefined) => number` from `api/validate.js`, throwing `ValidationError`. `ValidationError` class with a `.status` number property, used by every later task.
+
+**Invariant this task must preserve:** the game stays runnable. `node server.js` must serve a playable game at the end of this task, exactly as it does today.
 
 - [ ] **Step 1: Create `package.json`**
 
@@ -146,19 +148,39 @@ export function parsePort(raw) {
 Run: `npm test`
 Expected: PASS — 4 tests.
 
-- [ ] **Step 6: Wire `parsePort` into `server.js`**
+- [ ] **Step 6: Convert `server.js` to ES modules**
 
-`server.js` is still CommonJS at this point; it converts to ESM in Task 5. For now add the import at the top and replace the `PORT` line. Change line 51 from:
+`"type": "module"` in Step 1 makes every `.js` file an ES module immediately, so `server.js`'s `require()` calls break the moment `package.json` exists. Convert it now — mechanically, changing nothing but the module syntax. Task 5 does the full rewrite onto the shared handler; this step only keeps the game runnable in between.
+
+Replace lines 3-6:
 
 ```js
-const PORT = Number.parseInt(process.env.PORT || '3000', 10);
+const http = require('node:http');
+const https = require('node:https');
+const fs = require('node:fs');
+const path = require('node:path');
 ```
 
-to use the validated parse inside the existing `try`/`catch` that already handles configuration errors (currently lines 43-48), so a bad `PORT` prints "Configuration error" instead of throwing out of `listen`:
+with:
 
 ```js
-const { parsePort } = await import('./api/validate.js');
+import http from "node:http";
+import https from "node:https";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { parsePort } from "./api/validate.js";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+```
+
+`__dirname` does not exist in ES modules, and `server.js` uses it at lines 44 and 52 — the shim above keeps both working untouched.
+
+- [ ] **Step 7: Wire `parsePort` into `server.js`**
+
+Replace the existing `loadEnvFile` try/catch (lines 43-48) and the `PORT` assignment (line 51) with a single block, so a bad `PORT` prints "Configuration error" instead of throwing out of `listen`:
+
+```js
 let PORT;
 try {
   loadEnvFile(path.join(__dirname, '.env'));
@@ -169,17 +191,19 @@ try {
 }
 ```
 
-Delete the now-duplicated `loadEnvFile` try/catch at lines 43-48 and the old `PORT` assignment.
+Leave the `HOST` and `INDEX_PATH` constants where they are.
 
-- [ ] **Step 7: Verify the graceful failure by hand**
+- [ ] **Step 8: Verify the graceful failure by hand**
 
 Run: `PORT="3001 # dev" node server.js`
 Expected: prints `Configuration error: PORT must be a number, got "3001 # dev".` and exits 1 — **not** an `ERR_SOCKET_BAD_PORT` stack trace.
 
 Run: `node server.js`
-Expected: starts normally on port 3000.
+Expected: starts normally on port 3000 and prints `The Interrogation Room is open at http://127.0.0.1:3000`. This is the check that the ESM conversion in Step 6 is complete — a missed `require()` fails here with `require is not defined in ES module scope`.
 
-- [ ] **Step 8: Commit**
+Then open <http://127.0.0.1:3000> and confirm the title card still renders and "Begin Investigation" still generates a case. The game must remain fully playable after this task.
+
+- [ ] **Step 9: Commit**
 
 ```bash
 git add package.json test/config.test.js api/validate.js server.js
@@ -187,7 +211,11 @@ git commit -m "fix: validate PORT through the graceful config-error path
 
 Adds node:test infrastructure with zero dependencies. A PORT carrying a
 trailing comment (which the .env parser preserves) previously threw
-ERR_SOCKET_BAD_PORT past the Configuration error handler."
+ERR_SOCKET_BAD_PORT past the Configuration error handler.
+
+Converts server.js to ES modules, which package.json's type: module makes
+mandatory immediately. The conversion is mechanical; server.js moves onto
+the shared handler in a later task."
 ```
 
 ---
