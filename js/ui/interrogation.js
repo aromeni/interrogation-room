@@ -88,7 +88,9 @@ function bindGameEvents(state, handlers) {
   const submitQuestion = () => {
     const question = questionInput.value.trim();
     if (!question) return;
-    handlers.askQuestion(state.activeSuspect, question);
+    // Literal "straight" until Task 13 adds a tone selector (ui.tone).
+    // The server requires a valid tone on every interrogate call.
+    handlers.askQuestion(state.activeSuspect, question, "straight");
   };
   document.getElementById("ask-question").addEventListener("click", submitQuestion);
   questionInput.addEventListener("keydown", event => {
