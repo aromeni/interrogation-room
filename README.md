@@ -4,7 +4,7 @@ A single-page, LLM-powered procedural whodunnit with a zero-dependency local Nod
 
 ## Run locally
 
-Requires Node.js 18 or newer and an Anthropic API key. The server loads `.env` automatically; the key remains server-side and is never sent to browser code.
+Requires Node.js 20 or newer and an Anthropic API key. The server loads `.env` automatically; the key remains server-side and is never sent to browser code.
 
 The first time you run the game, create `.env` from the provided template:
 
@@ -27,3 +27,11 @@ node server.js
 Open <http://127.0.0.1:3000>.
 
 No package installation or build step is required. `.env` is excluded by `.gitignore`. To use another port, add `PORT=3001` to `.env`.
+
+Optional environment variables:
+
+- `PORT` — defaults to `3000`.
+- `HOST` — defaults to `127.0.0.1`.
+- `ALLOWED_ORIGINS` — comma-separated origin allowlist for `/api/message`. Leave unset for local development, where any origin is accepted.
+
+Run the test suite with `npm test`. There are no dependencies to install.

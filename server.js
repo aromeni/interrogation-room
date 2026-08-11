@@ -1,37 +1,32 @@
-'use strict';
-
 import http from "node:http";
-import https from "node:https";
 import fs from "node:fs";
+import fsp from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { parsePort } from "./api/validate.js";
+import { parsePort, ValidationError } from "./api/validate.js";
+import { handleMessage, isAllowedOrigin, assertPostable, MAX_BODY_BYTES } from "./api/handler.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.dirname(fileURLToPath(import.meta.url));
 
 function loadEnvFile(filePath) {
   let source;
   try {
-    source = fs.readFileSync(filePath, 'utf8');
+    source = fs.readFileSync(filePath, "utf8");
   } catch (error) {
-    if (error.code === 'ENOENT') return;
+    if (error.code === "ENOENT") return;
     throw error;
   }
-
   source.split(/\r?\n/).forEach((line, index) => {
     let entry = line.trim();
-    if (!entry || entry.startsWith('#')) return;
-    if (entry.startsWith('export ')) entry = entry.slice(7).trimStart();
-
-    const separator = entry.indexOf('=');
+    if (!entry || entry.startsWith("#")) return;
+    if (entry.startsWith("export ")) entry = entry.slice(7).trimStart();
+    const separator = entry.indexOf("=");
     if (separator < 1) throw new Error(`Invalid .env entry on line ${index + 1}.`);
-
     const name = entry.slice(0, separator).trim();
     let value = entry.slice(separator + 1).trim();
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
       throw new Error(`Invalid variable name in .env on line ${index + 1}.`);
     }
-
     if (value.startsWith('"') || value.startsWith("'")) {
       const quote = value[0];
       if (value.length < 2 || !value.endsWith(quote)) {
@@ -39,115 +34,118 @@ function loadEnvFile(filePath) {
       }
       value = value.slice(1, -1);
     }
-
     if (process.env[name] === undefined) process.env[name] = value;
   });
 }
 
 let PORT;
 try {
-  loadEnvFile(path.join(__dirname, '.env'));
+  loadEnvFile(path.join(ROOT, ".env"));
   PORT = parsePort(process.env.PORT);
 } catch (error) {
   console.error(`Configuration error: ${error.message}`);
   process.exit(1);
 }
 
-const HOST = process.env.HOST || '127.0.0.1';
-const INDEX_PATH = path.join(__dirname, 'index.html');
+const HOST = process.env.HOST || "127.0.0.1";
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
+  .split(",").map(value => value.trim()).filter(Boolean);
 
-function sendJson(response, statusCode, payload) {
+const MIME = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8"
+};
+
+function sendJson(response, status, payload) {
   const body = JSON.stringify(payload);
-  response.writeHead(statusCode, {
-    'content-type': 'application/json; charset=utf-8',
-    'content-length': Buffer.byteLength(body),
-    'cache-control': 'no-store'
+  response.writeHead(status, {
+    "content-type": "application/json; charset=utf-8",
+    "content-length": Buffer.byteLength(body),
+    "cache-control": "no-store"
   });
   response.end(body);
 }
 
-function serveIndex(request, response) {
-  fs.readFile(INDEX_PATH, (error, html) => {
-    if (error) {
-      sendJson(response, 500, { error: 'Could not read index.html.' });
+async function readBody(request) {
+  const chunks = [];
+  let total = 0;
+  for await (const chunk of request) {
+    total += chunk.length;
+    // Enforced against actual bytes, not just the declared Content-Length,
+    // so a lying header cannot exhaust memory.
+    if (total > MAX_BODY_BYTES) throw new ValidationError("Request body is too large.", 413);
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+async function serveStatic(pathname, response) {
+  const relative = pathname === "/" ? "index.html" : pathname.slice(1);
+  const target = path.join(ROOT, relative);
+  // Confine every read to the repo root, rejecting ../ traversal.
+  if (!target.startsWith(ROOT + path.sep)) {
+    sendJson(response, 403, { error: "Forbidden." });
+    return;
+  }
+  const extension = path.extname(target);
+  if (!MIME[extension]) {
+    sendJson(response, 404, { error: "Not found." });
+    return;
+  }
+  try {
+    const file = await fsp.readFile(target);
+    response.writeHead(200, { "content-type": MIME[extension], "cache-control": "no-store" });
+    response.end(file);
+  } catch {
+    sendJson(response, 404, { error: "Not found." });
+  }
+}
+
+const server = http.createServer(async (request, response) => {
+  let url;
+  try {
+    // A malformed Host header throws ERR_INVALID_URL, which server.on("error")
+    // does not catch. Guarding here keeps the process alive.
+    url = new URL(request.url, `http://${request.headers.host || `${HOST}:${PORT}`}`);
+  } catch {
+    sendJson(response, 400, { error: "Malformed request URL." });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/message") {
+    try {
+      if (!isAllowedOrigin(request.headers.origin, ALLOWED_ORIGINS)) {
+        sendJson(response, 403, { error: "Origin not allowed." });
+        return;
+      }
+      assertPostable(request.headers);
+      const raw = await readBody(request);
+      const result = await handleMessage(JSON.parse(raw), {
+        apiKey: process.env.ANTHROPIC_API_KEY
+      });
+      sendJson(response, result.status, result.json);
+    } catch (error) {
+      const status = error instanceof ValidationError ? error.status : 400;
+      sendJson(response, status, { error: error.message || "Bad request." });
+    }
+    return;
+  }
+
+  if (request.method === "GET" || request.method === "HEAD") {
+    if (url.pathname === "/favicon.ico") {
+      response.writeHead(204);
+      response.end();
       return;
     }
-    response.writeHead(200, {
-      'content-type': 'text/html; charset=utf-8',
-      'content-length': html.length,
-      'cache-control': 'no-store'
-    });
-    if (request.method === 'HEAD') response.end();
-    else response.end(html);
-  });
-}
-
-function proxyMessage(request, response) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    sendJson(response, 500, { error: 'ANTHROPIC_API_KEY is not set on the server.' });
+    await serveStatic(url.pathname, response);
     return;
   }
 
-  const chunks = [];
-  request.on('data', chunk => chunks.push(chunk));
-  request.on('error', () => {
-    if (!response.headersSent) sendJson(response, 400, { error: 'Could not read request body.' });
-  });
-  request.on('end', () => {
-    const body = Buffer.concat(chunks);
-    const upstream = https.request({
-      hostname: 'api.anthropic.com',
-      port: 443,
-      path: '/v1/messages',
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-        'content-length': body.length
-      }
-    }, upstreamResponse => {
-      const responseHeaders = {
-        'content-type': upstreamResponse.headers['content-type'] || 'application/json; charset=utf-8',
-        'cache-control': 'no-store'
-      };
-      response.writeHead(upstreamResponse.statusCode || 502, responseHeaders);
-      upstreamResponse.pipe(response);
-    });
-
-    upstream.setTimeout(120000, () => upstream.destroy(new Error('Upstream request timed out.')));
-    upstream.on('error', () => {
-      if (!response.headersSent) sendJson(response, 502, { error: 'The Anthropic API could not be reached.' });
-      else response.end();
-    });
-    upstream.end(body);
-  });
-}
-
-const server = http.createServer((request, response) => {
-  const url = new URL(request.url, `http://${request.headers.host || `${HOST}:${PORT}`}`);
-
-  if ((request.method === 'GET' || request.method === 'HEAD') && (url.pathname === '/' || url.pathname === '/index.html')) {
-    serveIndex(request, response);
-    return;
-  }
-
-  if (request.method === 'POST' && url.pathname === '/api/message') {
-    proxyMessage(request, response);
-    return;
-  }
-
-  if (request.method === 'GET' && url.pathname === '/favicon.ico') {
-    response.writeHead(204);
-    response.end();
-    return;
-  }
-
-  sendJson(response, 404, { error: 'Not found.' });
+  sendJson(response, 404, { error: "Not found." });
 });
 
-server.on('error', error => {
+server.on("error", error => {
   console.error(`Server failed: ${error.message}`);
   process.exitCode = 1;
 });
