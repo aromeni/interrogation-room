@@ -88,3 +88,27 @@ test("isValidCase rejects the wrong number of forensics", () => {
   bad.forensics = bad.forensics.slice(0, 2);
   assert.equal(isValidCase(bad), false);
 });
+
+test("isValidCase rejects a weapon candidate list containing an empty string", () => {
+  const bad = validCase();
+  bad.weapon_candidates = ["Brass Candlestick", "", "Rope", "Poison", "Revolver"];
+  assert.equal(isValidCase(bad), false);
+});
+
+test("isValidCase rejects a weapon candidate list with duplicate entries", () => {
+  const bad = validCase();
+  bad.weapon_candidates = ["Brass Candlestick", "Brass Candlestick", "Rope", "Poison", "Revolver"];
+  assert.equal(isValidCase(bad), false);
+});
+
+test("isValidCase rejects a location candidate list containing an empty string", () => {
+  const bad = validCase();
+  bad.location_candidates = ["The Conservatory", "", "The Cellar", "The Drive", "The Attic"];
+  assert.equal(isValidCase(bad), false);
+});
+
+test("isValidCase rejects a location candidate list with duplicate entries", () => {
+  const bad = validCase();
+  bad.location_candidates = ["The Conservatory", "The Conservatory", "The Cellar", "The Drive", "The Attic"];
+  assert.equal(isValidCase(bad), false);
+});

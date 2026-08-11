@@ -86,9 +86,13 @@ export function isValidCase(caseFile) {
   if (!caseFile.forensics.every(entry => entry && isText(entry.finding) && isText(entry.rules_out))) return false;
 
   if (!Array.isArray(caseFile.weapon_candidates) || caseFile.weapon_candidates.length !== 5) return false;
+  if (!caseFile.weapon_candidates.every(isText)) return false;
+  if (new Set(caseFile.weapon_candidates).size !== 5) return false;
   if (!caseFile.weapon_candidates.includes(caseFile.weapon)) return false;
 
   if (!Array.isArray(caseFile.location_candidates) || caseFile.location_candidates.length !== 5) return false;
+  if (!caseFile.location_candidates.every(isText)) return false;
+  if (new Set(caseFile.location_candidates).size !== 5) return false;
   if (!caseFile.location_candidates.includes(caseFile.location)) return false;
 
   if (!Array.isArray(caseFile.alibis) || caseFile.alibis.length !== 2) return false;
