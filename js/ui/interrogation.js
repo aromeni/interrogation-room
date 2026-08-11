@@ -54,19 +54,43 @@ function boardSlot(key, label, control, state) {
   </div>`;
 }
 
+// Renders the forensics report: three physical findings, each of which rules
+// out one or more candidates. These are puzzle material (safe to show) — not
+// the answer key. Never pass murderer/weapon/location/murderer_motive here.
+function renderForensics(caseFile) {
+  const rows = caseFile.forensics.map(entry => `
+    <li class="forensic">
+      <p class="finding">${escapeHtml(entry.finding)}</p>
+      <p class="rules-out">Rules out: ${escapeHtml(entry.rules_out)}</p>
+    </li>`).join("");
+  return `<section class="forensics-report">
+    <div class="section-kicker">Forensics · Preliminary</div>
+    <ul>${rows}</ul>
+  </section>`;
+}
+
+// "???" first, then every candidate. The real weapon/location legitimately
+// appear as one of five options here — nothing marks which one is real.
+function renderOptions(values, selected) {
+  return [`<option value="">???</option>`]
+    .concat(values.map(value =>
+      `<option value="${escapeHtml(value)}"${value === selected ? " selected" : ""}>${escapeHtml(value)}</option>`))
+    .join("");
+}
+
 function renderBoard(state) {
-  const suspectOptions = state.caseFile.suspects.map(suspect =>
-    `<option value="${escapeHtml(suspect.name)}" ${state.board.suspect === suspect.name ? "selected" : ""}>${escapeHtml(suspect.name)}</option>`
-  ).join("");
+  const { caseFile, board } = state;
+  const suspectNames = caseFile.suspects.map(suspect => suspect.name);
   const disabled = state.busy ? "disabled" : "";
-  const complete = Object.values(state.board).every(value => value.trim());
+  const complete = Object.values(board).every(value => value.trim());
   return `<aside class="panel board">
+    ${renderForensics(caseFile)}
     <div class="section-kicker">Working theory</div>
     <h2>Evidence Board</h2>
     <p class="board-intro">Commit your theory. The desk grants two arrest warrants.</p>
-    ${boardSlot("suspect", "Who", `<label class="sr-only" for="board-suspect">Suspect</label><select id="board-suspect" ${disabled}><option value="">Choose a suspect</option>${suspectOptions}</select>`, state)}
-    ${boardSlot("weapon", "Weapon", `<label class="sr-only" for="board-weapon">Weapon</label><input id="board-weapon" type="text" maxlength="120" autocomplete="off" placeholder="Name the weapon" value="${escapeHtml(state.board.weapon)}" ${disabled}>`, state)}
-    ${boardSlot("location", "Where", `<label class="sr-only" for="board-location">Location</label><input id="board-location" type="text" maxlength="120" autocomplete="off" placeholder="Name the location" value="${escapeHtml(state.board.location)}" ${disabled}>`, state)}
+    ${boardSlot("suspect", "Who", `<label class="sr-only" for="board-suspect">Suspect</label><select id="board-suspect" ${disabled}>${renderOptions(suspectNames, board.suspect)}</select>`, state)}
+    ${boardSlot("weapon", "With what", `<label class="sr-only" for="board-weapon">Weapon</label><select id="board-weapon" ${disabled}>${renderOptions(caseFile.weapon_candidates, board.weapon)}</select>`, state)}
+    ${boardSlot("location", "Where", `<label class="sr-only" for="board-location">Location</label><select id="board-location" ${disabled}>${renderOptions(caseFile.location_candidates, board.location)}</select>`, state)}
     <button type="button" id="make-arrest" ${disabled || !complete ? "disabled" : ""}>${state.busy ? "Reviewing Warrant…" : "Make the Arrest"}</button>
     <p class="attempts">Warrants remaining: ${MAX_ACCUSATIONS - state.accusationsUsed}</p>
   </aside>`;
@@ -102,7 +126,7 @@ function bindGameEvents(state, handlers) {
 
   ["suspect", "weapon", "location"].forEach(key => {
     const control = document.getElementById(`board-${key}`);
-    control.addEventListener(key === "suspect" ? "change" : "input", event => handlers.updateBoard(key, event.target.value));
+    control.addEventListener("change", event => handlers.updateBoard(key, event.target.value));
   });
   document.getElementById("make-arrest").addEventListener("click", handlers.makeArrest);
 }

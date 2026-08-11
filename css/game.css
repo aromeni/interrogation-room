@@ -539,6 +539,32 @@
       font-size: 0.78rem;
     }
 
+    .forensics-report {
+      margin-bottom: 1.1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--hairline);
+    }
+
+    .forensics-report ul {
+      display: grid;
+      gap: 0.75rem;
+      margin: 0.6rem 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .forensic .finding {
+      margin: 0;
+      color: var(--parchment);
+      font-size: 0.85rem;
+    }
+
+    .forensic .rules-out {
+      margin: 0.15rem 0 0;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
     .board-slot {
       margin-bottom: 0.85rem;
       padding: 0.9rem;
