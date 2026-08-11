@@ -1,0 +1,16 @@
+    :root {
+      color-scheme: dark;
+      --ink: #12100e;
+      --panel: #1c1917;
+      --panel-deep: #171412;
+      --brass: #c9a227;
+      --parchment: #e8e2d4;
+      --muted: #a39d8f;
+      --danger: #b3402f;
+      --hairline: rgba(201, 162, 39, 0.25);
+      --paper: #c9b98f;
+      --paper-ink: #2b251d;
+      --shadow: rgba(0, 0, 0, 0.42);
+      --heading: Georgia, "Times New Roman", serif;
+      --body: "Courier New", ui-monospace, monospace;
+    }
