@@ -32,10 +32,16 @@ function renderTranscript(state) {
   }
   const exchanges = turns.map(turn => {
     const detective = turn.role === "user";
+    // Manual pin: files this exact line as a claim even when the model's
+    // structured `claim` field didn't flag it. Suspect turns only — the
+    // detective's own questions aren't statements to hold anyone to.
+    const pin = detective ? "" : `<button type="button" class="pin-line"
+        data-pin-suspect="${escapeHtml(state.activeSuspect)}" data-pin-text="${escapeHtml(turn.content)}">Pin to notebook</button>`;
     return `<div class="exchange ${detective ? "detective" : "suspect"}">
       <div class="bubble">
         <div class="speaker">${detective ? "Detective" : escapeHtml(state.activeSuspect)}</div>
         <p>${escapeHtml(turn.content)}</p>
+        ${pin}
       </div>
     </div>`;
   }).join("");
@@ -43,6 +49,56 @@ function renderTranscript(state) {
     ? `<div class="exchange suspect"><div class="bubble"><span class="typing">typing <i></i><i></i><i></i></span></div></div>`
     : "";
   return exchanges + typing;
+}
+
+// A single filed statement. The player marks it themselves (doubt / checks
+// out) and selects it for a confrontation — nothing here compares one card
+// against another. That comparison is the puzzle; it stays in the player's
+// head, on purpose.
+function renderClaimCard(claim, selected) {
+  const marks = ["doubt", "checks"];
+  const buttons = marks.map(mark => `
+    <button type="button" class="mark ${claim.mark === mark ? "active" : ""}"
+            aria-pressed="${claim.mark === mark}"
+            data-claim-mark="${mark}" data-claim-id="${escapeHtml(claim.id)}">
+      ${mark === "doubt" ? "Doubt this" : "Checks out"}
+    </button>`).join("");
+  return `<li class="claim-card ${selected ? "selected" : ""} ${claim.mark ? `marked-${claim.mark}` : ""}"
+             data-claim-id="${escapeHtml(claim.id)}">
+    <button type="button" class="claim-body" aria-pressed="${selected}" data-claim-select="${escapeHtml(claim.id)}">
+      <span class="claim-q">Q${claim.questionNumber}</span>
+      <span class="claim-assertion">${escapeHtml(claim.assertion)}</span>
+    </button>
+    <div class="claim-marks">${buttons}</div>
+  </li>`;
+}
+
+// The case notebook: every claim filed so far, grouped under the suspect who
+// made it. This is memory, not judgement — it must never flag, sort, or
+// diff claims against each other, and it must never render caseFile.murderer,
+// .weapon, .location, or .murderer_motive. Confronting two selected cards is
+// Task 12's job; the button here only tracks the 0/1/2 selection count.
+function renderNotebook(state) {
+  const sections = state.caseFile.suspects.map(suspect => {
+    const claims = state.claims[suspect.name] || [];
+    const cards = claims.length
+      ? claims.map(claim => renderClaimCard(claim, state.selectedClaimIds.includes(claim.id))).join("")
+      : `<li class="claim-empty">Nothing on record.</li>`;
+    return `<section class="notebook-suspect">
+      <h4 class="section-kicker">${escapeHtml(suspect.name)}</h4>
+      <ul>${cards}</ul>
+    </section>`;
+  }).join("");
+
+  const selected = state.selectedClaimIds.length;
+  return `<aside class="panel notebook">
+    <div class="section-kicker">Case Notebook</div>
+    <h2>Statements on Record</h2>
+    ${sections}
+    <button type="button" id="confront" class="primary-action" ${selected === 2 && !state.busy ? "" : "disabled"}>
+      ${selected === 2 ? "Confront" : `Select two statements (${selected}/2)`}
+    </button>
+  </aside>`;
 }
 
 function boardSlot(key, label, control, state) {
@@ -129,6 +185,17 @@ function bindGameEvents(state, handlers) {
     control.addEventListener("change", event => handlers.updateBoard(key, event.target.value));
   });
   document.getElementById("make-arrest").addEventListener("click", handlers.makeArrest);
+
+  document.querySelectorAll("[data-claim-select]").forEach(button => {
+    button.addEventListener("click", () => handlers.selectClaim(button.dataset.claimSelect));
+  });
+  document.querySelectorAll("[data-claim-mark]").forEach(button => {
+    button.addEventListener("click", () => handlers.toggleClaimMark(button.dataset.claimId, button.dataset.claimMark));
+  });
+  document.getElementById("confront")?.addEventListener("click", handlers.confront);
+  document.querySelectorAll(".pin-line").forEach(button => {
+    button.addEventListener("click", () => handlers.pinLine(button.dataset.pinSuspect, button.dataset.pinText));
+  });
 }
 
 export function renderInterrogation(app, state, ui, handlers) {
@@ -173,6 +240,7 @@ export function renderInterrogation(app, state, ui, handlers) {
       </section>
       ${renderBoard(state)}
     </div>
+    ${renderNotebook(state)}
   </section>`;
   bindGameEvents(state, handlers);
   bindRetry(ui, handlers);

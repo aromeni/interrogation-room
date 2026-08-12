@@ -601,6 +601,122 @@
       text-align: center;
     }
 
+    .pin-line {
+      min-height: 1.8rem;
+      margin-top: 0.5rem;
+      padding: 0.25rem 0.55rem;
+      color: var(--muted);
+      font-size: 0.65rem;
+      background: none;
+      border: 1px solid var(--hairline);
+    }
+
+    .notebook {
+      margin-top: 1.25rem;
+      padding: 1.2rem;
+    }
+
+    .notebook h2 {
+      margin-bottom: 0.2rem;
+      font-size: 1.7rem;
+    }
+
+    .notebook-suspect h4 {
+      margin: 1.1rem 0 0.5rem;
+    }
+
+    .notebook-suspect:first-of-type h4 {
+      margin-top: 0.4rem;
+    }
+
+    .notebook ul {
+      display: grid;
+      gap: 0.5rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .claim-card {
+      padding: 0.6rem 0.7rem;
+      background: var(--panel-deep);
+      border: 1px solid var(--hairline);
+      border-left: 3px solid transparent;
+    }
+
+    .claim-card.selected {
+      border-left-color: var(--brass);
+      box-shadow: inset 0 0 0 1px rgba(201, 162, 39, 0.35);
+    }
+
+    .claim-card.marked-doubt {
+      border-left-color: var(--danger);
+    }
+
+    .claim-card.marked-checks {
+      border-left-color: var(--brass);
+    }
+
+    .claim-body {
+      display: block;
+      width: 100%;
+      min-height: 0;
+      padding: 0;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      text-transform: none;
+      letter-spacing: normal;
+      background: none;
+      border: 0;
+      cursor: pointer;
+    }
+
+    .claim-q {
+      margin-right: 0.4rem;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .claim-assertion {
+      font-size: 0.85rem;
+    }
+
+    .claim-marks {
+      display: flex;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+    }
+
+    .claim-marks .mark {
+      min-height: 1.8rem;
+      padding: 0.2rem 0.5rem;
+      color: var(--muted);
+      font-size: 0.68rem;
+      background: none;
+      border: 1px solid var(--hairline);
+    }
+
+    .claim-marks .mark.active {
+      color: var(--ink);
+      background: var(--brass);
+      border-color: var(--brass);
+    }
+
+    .claim-empty {
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-style: italic;
+    }
+
+    .notebook #confront {
+      width: 100%;
+      margin-top: 1.25rem;
+    }
+
     .notice {
       margin-bottom: 1rem;
       padding: 1rem;

@@ -1,4 +1,4 @@
-import { createState, applyStress, addClaim, isValidCase } from "./state.js";
+import { createState, applyStress, addClaim, markClaim, isValidCase } from "./state.js";
 import { MAX_ACCUSATIONS } from "./config.js";
 import { callApi } from "./api.js";
 import { renderBoot } from "./ui/boot.js";
@@ -57,7 +57,11 @@ const handlers = {
   makeArrest,
   selectSuspect,
   updateBoard,
-  clearError
+  clearError,
+  selectClaim,
+  toggleClaimMark,
+  pinLine,
+  confront
 };
 
 function render() {
@@ -87,6 +91,37 @@ function updateBoard(key, value) {
   const complete = Object.values(state.board).every(item => item.trim());
   if (arrestButton) arrestButton.disabled = state.busy || !complete;
 }
+
+// Selection holds at most two cards. Selecting a third drops the oldest;
+// clicking an already-selected card deselects it. Whether the pair actually
+// contradicts is for the player to judge, not this function.
+function selectClaim(claimId) {
+  const index = state.selectedClaimIds.indexOf(claimId);
+  if (index !== -1) {
+    state.selectedClaimIds.splice(index, 1);
+  } else {
+    state.selectedClaimIds.push(claimId);
+    if (state.selectedClaimIds.length > 2) state.selectedClaimIds.shift();
+  }
+  render();
+}
+
+function toggleClaimMark(claimId, mark) {
+  markClaim(state, claimId, mark);
+  render();
+}
+
+// Manual pin: files a suspect's own line as a claim verbatim, for cases the
+// model's structured `claim` field didn't flag as one.
+function pinLine(suspectName, text) {
+  if (!text || !text.trim()) return;
+  addClaim(state, suspectName, { subject: suspectName, assertion: text }, state.questionsAsked);
+  render();
+}
+
+// The notebook renders this button disabled-until-two so it's reachable and
+// testable now, but wiring an actual confrontation is Task 12's job.
+function confront() {}
 
 async function beginInvestigation() {
   if (state.busy) return;
