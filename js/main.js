@@ -1,5 +1,6 @@
-import { createState, applyStress, addClaim, markClaim, isValidCase } from "./state.js";
+import { createState, applyStress, addClaim, markClaim, findClaim, isValidCase } from "./state.js";
 import { MAX_ACCUSATIONS } from "./config.js";
+import { buildConfrontation } from "./confront.js";
 import { callApi } from "./api.js";
 import { renderBoot } from "./ui/boot.js";
 import { renderSetup } from "./ui/setup.js";
@@ -119,9 +120,21 @@ function pinLine(suspectName, text) {
   render();
 }
 
-// The notebook renders this button disabled-until-two so it's reachable and
-// testable now, but wiring an actual confrontation is Task 12's job.
-function confront() {}
+// Quotes one suspect's claim to another. Ordinary interrogation call, so it
+// costs nothing extra — and only the single claim crosses between suspects,
+// never a transcript.
+function confront() {
+  if (state.busy || state.selectedClaimIds.length !== 2) return;
+  const [first, second] = state.selectedClaimIds.map(id => findClaim(state, id));
+  const confrontation = buildConfrontation(first, second);
+  if (!confrontation) {
+    ui.error = "Pick two statements from two different suspects.";
+    render();
+    return;
+  }
+  state.selectedClaimIds = [];
+  askQuestion(confrontation.suspectName, confrontation.question, "press");
+}
 
 async function beginInvestigation() {
   if (state.busy) return;

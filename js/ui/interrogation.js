@@ -76,8 +76,8 @@ function renderClaimCard(claim, selected) {
 // The case notebook: every claim filed so far, grouped under the suspect who
 // made it. This is memory, not judgement — it must never flag, sort, or
 // diff claims against each other, and it must never render caseFile.murderer,
-// .weapon, .location, or .murderer_motive. Confronting two selected cards is
-// Task 12's job; the button here only tracks the 0/1/2 selection count.
+// .weapon, .location, or .murderer_motive. Judging whether two selected cards
+// contradict is the player's job; the button only counts the selection.
 function renderNotebook(state) {
   const sections = state.caseFile.suspects.map(suspect => {
     const claims = state.claims[suspect.name] || [];
