@@ -3,8 +3,15 @@ import assert from "node:assert/strict";
 import { isAllowedOrigin, assertPostable, MAX_BODY_BYTES } from "../api/handler.js";
 import { ValidationError } from "../api/validate.js";
 
-test("a same-origin request with no Origin header is allowed", () => {
-  assert.equal(isAllowedOrigin(undefined, ["https://game.example"]), true);
+// Browsers attach Origin to every POST, same-origin included, and this API
+// only accepts POST. So a missing Origin in production is never the real
+// client -- it is a script, which is exactly what the allowlist is for.
+test("a request with no Origin is refused once an allowlist is configured", () => {
+  assert.equal(isAllowedOrigin(undefined, ["https://game.example"]), false);
+});
+
+test("a request with no Origin is allowed when no allowlist is set", () => {
+  assert.equal(isAllowedOrigin(undefined, []), true);
 });
 
 test("a listed origin is allowed", () => {

@@ -70,6 +70,18 @@ curl -s -X POST -H 'Content-Type: application/json' -H 'Origin: https://evil.exa
 
 Expected: `{"error":"Origin not allowed."}` with status 403.
 
+Now the same request with no `Origin` header at all — a script rather than a
+browser, since browsers attach `Origin` to every POST:
+
+```sh
+curl -s -X POST -H 'Content-Type: application/json' \
+  -d '{"type":"case"}' https://<your-production-url>/api/message
+```
+
+Expected: the same 403. Both checks only hold where `ALLOWED_ORIGINS` is set;
+an empty allowlist accepts anything, which is what makes local development
+work.
+
 ### Spend controls
 
 Rate limiting is **Vercel Firewall only** — add a rule on `/api/message`, e.g.

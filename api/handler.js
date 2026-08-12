@@ -108,10 +108,10 @@ export async function handleMessage(body, { apiKey, fetchImpl = fetch }) {
 
 export const MAX_BODY_BYTES = 256 * 1024;
 
-// An absent Origin means a same-origin or non-browser request. An empty
-// allowlist means local development, where the origin varies.
+// An empty allowlist means local development, where the origin varies. Once
+// one is configured the Origin must be present and listed: browsers attach it
+// to every POST, so a request without one is a script, not the game.
 export function isAllowedOrigin(origin, allowedOrigins) {
-  if (!origin) return true;
   if (allowedOrigins.length === 0) return true;
   return allowedOrigins.includes(origin);
 }
