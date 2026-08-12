@@ -29,7 +29,19 @@ test("buildRequest sends only the suspect's own transcript plus the question", (
   });
   assert.equal(request.messages.length, 2);
   assert.equal(request.messages[1].content, "Where were you?");
-  assert.match(request.system, /You are playing: Ada Vance/);
+  assert.match(request.system[0].text, /You are playing: Ada Vance/);
+});
+
+test("buildRequest marks the interrogation system prompt for caching", () => {
+  const request = buildRequest({
+    type: "interrogate", caseFile: CASE_FILE, suspectName: "A",
+    question: "q", tone: "straight", transcript: []
+  });
+  assert.deepEqual(request.system[0].cache_control, { type: "ephemeral" });
+});
+
+test("buildRequest leaves the one-shot case prompt uncached", () => {
+  assert.equal(typeof buildRequest({ type: "case" }).system, "string");
 });
 
 test("buildRequest applies low effort to interrogation", () => {

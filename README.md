@@ -35,3 +35,52 @@ Optional environment variables:
 - `ALLOWED_ORIGINS` — comma-separated origin allowlist for `/api/message`. Leave unset for local development, where any origin is accepted.
 
 Run the test suite with `npm test`. There are no dependencies to install.
+
+## Deploy to Vercel
+
+`api/message.js` is the serverless entry point. It is a thin adapter over the
+same `api/handler.js` the local dev server uses, so production and development
+cannot drift apart. `server.js` is excluded from the deployment by
+`.vercelignore`.
+
+```sh
+npx vercel        # link the project and deploy a preview
+npx vercel --prod # promote to production
+```
+
+Set these in Project → Settings → Environment Variables:
+
+| Name | Value | Environments |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | your key | Production, Preview |
+| `ALLOWED_ORIGINS` | the production URL, e.g. `https://interrogation-room.vercel.app` | Production |
+| `GAME_ENABLED` | `true` | Production, Preview |
+
+Leave `ALLOWED_ORIGINS` **unset** on Preview — preview URLs change per
+deployment, and an empty allowlist accepts any origin. Setting `GAME_ENABLED`
+to `false` is the kill switch: every call returns 503 without reaching
+Anthropic.
+
+Verify the key is unspendable from elsewhere:
+
+```sh
+curl -s -X POST -H 'Content-Type: application/json' -H 'Origin: https://evil.example' \
+  -d '{"type":"case"}' https://<your-production-url>/api/message
+```
+
+Expected: `{"error":"Origin not allowed."}` with status 403.
+
+### Spend controls
+
+Rate limiting is **Vercel Firewall only** — add a rule on `/api/message`, e.g.
+30 requests per minute per IP. Serverless instances are stateless, so an
+in-memory counter in the handler would not hold across them. Set a monthly
+spend limit on the key in the Anthropic Console; that is the real backstop,
+and everything above it is a filter.
+
+Prompt caching is **enabled for interrogation calls**. The interrogation system
+prompt measured 1327 input tokens for a representative case, above the
+1024-token minimum cacheable prefix, and it is re-sent verbatim for every
+question put to the same suspect in the same tone. The one-shot case and judge
+prompts are not marked — they are sent once each per playthrough, so a cache
+write would be paid for and never read.

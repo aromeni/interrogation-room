@@ -19,7 +19,15 @@ export function buildRequest(payload) {
     system = casePrompt();
     messages = [{ role: "user", content: "Generate the case." }];
   } else if (payload.type === "interrogate") {
-    system = interrogationPrompt(payload.caseFile, payload.suspectName, payload.tone);
+    // Measured at 1327 input tokens for a representative case, above the
+    // 1024-token floor, so the prefix genuinely caches. It is worth marking
+    // because the interrogation prompt is re-sent verbatim for every question
+    // put to the same suspect in the same tone — the common case by far.
+    system = [{
+      type: "text",
+      text: interrogationPrompt(payload.caseFile, payload.suspectName, payload.tone),
+      cache_control: { type: "ephemeral" }
+    }];
     messages = [...payload.transcript, { role: "user", content: payload.question }];
   } else {
     system = judgePrompt(payload.caseFile);
