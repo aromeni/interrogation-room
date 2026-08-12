@@ -770,10 +770,31 @@
       font-weight: 400;
     }
 
+    .judge-clue .wrong-elements {
+      margin-bottom: 0;
+      color: var(--danger);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
     .verdict-copy {
       position: relative;
       z-index: 1;
       white-space: pre-wrap;
+    }
+
+    /* The reveal wipes down rather than typing character by character, so the
+       narration never reflows mid-animation. The global prefers-reduced-motion
+       block at the end of this file already collapses it to nothing. */
+    .typewriter {
+      overflow: hidden;
+      animation: reveal 2.2s steps(60, end);
+    }
+
+    @keyframes reveal {
+      from { max-height: 0; opacity: 0; }
+      to { max-height: 40em; opacity: 1; }
     }
 
     .verdict-word {

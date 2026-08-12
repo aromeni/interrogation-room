@@ -101,6 +101,19 @@ function renderNotebook(state) {
   </aside>`;
 }
 
+// A rejected warrant keeps the player in the room. The narrator's in-world
+// clue names which of the three elements is wrong — never which is right, and
+// never the answer itself.
+function renderJudgeClue(ui) {
+  if (!ui.judgeClue) return "";
+  const wrong = (ui.wrongElements || []).map(element => escapeHtml(element)).join(", ");
+  return `<aside class="notice judge-clue" role="status">
+    <div class="section-kicker">Warrant denied</div>
+    <p>${escapeHtml(ui.judgeClue)}</p>
+    ${wrong ? `<p class="wrong-elements">Wrong: ${wrong}</p>` : ""}
+  </aside>`;
+}
+
 // The technique lever. Tone changes how the suspect answers — it is not an
 // extra API call, just a different section of the same interrogation prompt.
 function renderToneSelect(currentTone, disabled) {
@@ -223,7 +236,7 @@ export function renderInterrogation(app, state, ui, handlers) {
       </div>
       <div class="counter">Question ${state.questionsAsked} of ~${SOFT_QUESTION_LIMIT}</div>
     </header>
-    ${ui.judgeClue ? `<aside class="notice" role="status"><div class="section-kicker">Warrant denied</div><p>${escapeHtml(ui.judgeClue)}</p></aside>` : ""}
+    ${renderJudgeClue(ui)}
     ${renderError(ui)}
     <article class="panel victim-file">
       <div class="victim-mark" aria-hidden="true">†</div>
