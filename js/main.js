@@ -15,6 +15,7 @@ const ui = {
   retryLabel: "Try Again",
   setupError: null,
   judgeClue: "",
+  tone: "straight",
   verdictText: "",
   verdictWon: false,
   wrongElements: [],
@@ -33,6 +34,7 @@ function resetUi() {
     retryLabel: "Try Again",
     setupError: null,
     judgeClue: "",
+    tone: "straight",
     verdictText: "",
     verdictWon: false,
     wrongElements: [],
@@ -62,7 +64,8 @@ const handlers = {
   selectClaim,
   toggleClaimMark,
   pinLine,
-  confront
+  confront,
+  setTone
 };
 
 function render() {
@@ -105,6 +108,12 @@ function selectClaim(claimId) {
     if (state.selectedClaimIds.length > 2) state.selectedClaimIds.shift();
   }
   render();
+}
+
+// No render() — the select already shows the new value, and re-rendering here
+// would blow away whatever the player has typed into the question box.
+function setTone(tone) {
+  ui.tone = tone;
 }
 
 function toggleClaimMark(claimId, mark) {

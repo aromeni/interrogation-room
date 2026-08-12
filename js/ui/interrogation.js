@@ -1,6 +1,6 @@
 import { escapeHtml } from "../escape.js";
 import { stressBand } from "../state.js";
-import { SOFT_QUESTION_LIMIT, MAX_ACCUSATIONS } from "../config.js";
+import { SOFT_QUESTION_LIMIT, MAX_ACCUSATIONS, TONES } from "../config.js";
 import { renderError, bindRetry } from "./setup.js";
 
 function renderSuspectCard(suspect, index, state) {
@@ -101,6 +101,18 @@ function renderNotebook(state) {
   </aside>`;
 }
 
+// The technique lever. Tone changes how the suspect answers — it is not an
+// extra API call, just a different section of the same interrogation prompt.
+function renderToneSelect(currentTone, disabled) {
+  const options = TONES.map(tone =>
+    `<option value="${escapeHtml(tone.value)}"${tone.value === currentTone ? " selected" : ""}>${escapeHtml(tone.label)}</option>`
+  ).join("");
+  return `<div class="tone-field">
+    <label class="field-label" for="question-tone">Approach</label>
+    <select id="question-tone" ${disabled ? "disabled" : ""}>${options}</select>
+  </div>`;
+}
+
 function boardSlot(key, label, control, state) {
   const value = state.board[key].trim();
   return `<div class="board-slot ${value ? "filled" : ""}" id="slot-${key}">
@@ -152,7 +164,7 @@ function renderBoard(state) {
   </aside>`;
 }
 
-function bindGameEvents(state, handlers) {
+function bindGameEvents(state, ui, handlers) {
   document.querySelectorAll(".suspect-card").forEach(card => {
     const choose = () => handlers.selectSuspect(card.dataset.suspect);
     card.addEventListener("click", choose);
@@ -165,12 +177,14 @@ function bindGameEvents(state, handlers) {
   });
 
   const questionInput = document.getElementById("question-input");
+  const toneSelect = document.getElementById("question-tone");
+  // Persisted on change rather than read only at submit, so the chosen
+  // approach survives the re-render that every reply triggers.
+  toneSelect?.addEventListener("change", event => handlers.setTone(event.target.value));
   const submitQuestion = () => {
     const question = questionInput.value.trim();
     if (!question) return;
-    // Literal "straight" until Task 13 adds a tone selector (ui.tone).
-    // The server requires a valid tone on every interrogate call.
-    handlers.askQuestion(state.activeSuspect, question, "straight");
+    handlers.askQuestion(state.activeSuspect, question, toneSelect?.value || ui.tone);
   };
   document.getElementById("ask-question").addEventListener("click", submitQuestion);
   questionInput.addEventListener("keydown", event => {
@@ -234,6 +248,7 @@ export function renderInterrogation(app, state, ui, handlers) {
               <label class="field-label" for="question-input">Your question</label>
               <input id="question-input" type="text" maxlength="500" autocomplete="off" placeholder="${active ? "Ask about the case…" : "Select a suspect first"}" ${!active || state.busy ? "disabled" : ""}>
             </div>
+            ${renderToneSelect(ui.tone, !active || state.busy)}
             <button type="button" id="ask-question" ${!active || state.busy ? "disabled" : ""}>Question</button>
           </div>
         </div>
@@ -242,7 +257,7 @@ export function renderInterrogation(app, state, ui, handlers) {
     </div>
     ${renderNotebook(state)}
   </section>`;
-  bindGameEvents(state, handlers);
+  bindGameEvents(state, ui, handlers);
   bindRetry(ui, handlers);
   requestAnimationFrame(() => {
     const transcript = document.getElementById("transcript");

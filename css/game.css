@@ -522,6 +522,15 @@
       margin-bottom: 0.35rem;
     }
 
+    .tone-field {
+      flex: 0 0 11rem;
+    }
+
+    .tone-field .field-label {
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+
     .board {
       position: sticky;
       top: 1rem;
@@ -828,6 +837,12 @@
       .question-actions {
         align-items: stretch;
         flex-direction: column;
+      }
+
+      /* The basis is a width in the row layout; in a column it would become a
+         fixed height, so it has to go when the box stacks. */
+      .tone-field {
+        flex: initial;
       }
 
       .suspect-grid,
