@@ -41,6 +41,13 @@ export function buildRequest(payload) {
     model: MODEL,
     max_tokens: config.max_tokens,
     system,
+    // Sonnet 5 runs adaptive thinking when `thinking` is omitted. Thinking
+    // tokens are billed as output and count against max_tokens, so leaving it
+    // on pushed case generation to ~85s -- long enough that the browser drops
+    // the fetch -- and put every call at risk of the max_tokens truncation
+    // guard below. The budgets here are sized for answer text, so ask for
+    // answer text; effort still tunes how hard each call works.
+    thinking: { type: "disabled" },
     messages,
     output_config: {
       effort: config.effort,

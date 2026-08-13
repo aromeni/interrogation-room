@@ -12,6 +12,24 @@ test("buildRequest pins the model regardless of the payload", () => {
   assert.equal(request.output_config.effort, "high");
 });
 
+// Sonnet 5 thinks by default when `thinking` is omitted, which billed as
+// output, ate into max_tokens, and made case generation slow enough that the
+// browser dropped the request. Every call type must opt out explicitly.
+test("buildRequest disables thinking on every call type", () => {
+  for (const type of ["case", "interrogate", "judge"]) {
+    const request = buildRequest({
+      type,
+      caseFile: CASE_FILE,
+      suspectName: "S",
+      question: "q",
+      tone: "straight",
+      transcript: [],
+      board: { suspect: "S", weapon: "w", location: "l" }
+    });
+    assert.deepEqual(request.thinking, { type: "disabled" }, `${type} must not think`);
+  }
+});
+
 test("buildRequest attaches the case schema for a case call", () => {
   const request = buildRequest({ type: "case" });
   assert.equal(request.output_config.format.type, "json_schema");
