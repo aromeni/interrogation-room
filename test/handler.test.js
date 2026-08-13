@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildRequest, handleMessage } from "../api/handler.js";
+import { buildRequest, handleMessage, MAX_ATTEMPTS } from "../api/handler.js";
 import { MODEL, CALL_CONFIG } from "../api/prompts.js";
 
 const CASE_FILE = { victim: { name: "V", description: "d" }, suspects: [] };
@@ -126,4 +126,74 @@ test("handleMessage reports a missing key without calling the API", async () => 
   );
   assert.equal(result.status, 500);
   assert.equal(called, false);
+});
+
+// A 529 from Anthropic means "overloaded", and it is genuinely transient: in
+// production the identical call succeeded seconds later. Absorbing it here
+// keeps a blip from surfacing as "Upstream error 529." mid-interrogation.
+const okReply = {
+  ok: true,
+  status: 200,
+  json: async () => ({ content: [{ type: "text", text: '{"reply":"r","stress":1,"claim":null}' }] })
+};
+const upstream = status => ({ ok: false, status, json: async () => ({}) });
+
+test("handleMessage retries a transient upstream failure and returns the retry", async () => {
+  const seen = [];
+  const fetchImpl = async () => {
+    seen.push(1);
+    return seen.length === 1 ? upstream(529) : okReply;
+  };
+  const result = await handleMessage(
+    { type: "case" },
+    { apiKey: "sk-test", fetchImpl, retryDelayMs: 0 }
+  );
+  assert.equal(seen.length, 2, "should have made a second attempt");
+  assert.equal(result.status, 200);
+  assert.equal(result.json.reply, "r");
+});
+
+test("handleMessage retries a network failure", async () => {
+  let attempts = 0;
+  const fetchImpl = async () => {
+    attempts += 1;
+    if (attempts === 1) throw new Error("socket hang up");
+    return okReply;
+  };
+  const result = await handleMessage(
+    { type: "case" },
+    { apiKey: "sk-test", fetchImpl, retryDelayMs: 0 }
+  );
+  assert.equal(attempts, 2);
+  assert.equal(result.status, 200);
+});
+
+test("handleMessage gives up after the retry and reports the upstream status", async () => {
+  let attempts = 0;
+  const fetchImpl = async () => {
+    attempts += 1;
+    return upstream(529);
+  };
+  const result = await handleMessage(
+    { type: "case" },
+    { apiKey: "sk-test", fetchImpl, retryDelayMs: 0 }
+  );
+  assert.equal(attempts, MAX_ATTEMPTS);
+  assert.equal(result.status, 529);
+});
+
+// A 400 means the request itself is wrong. Retrying it would burn latency to
+// get the same answer, so it must fail on the first attempt.
+test("handleMessage does not retry a permanent upstream error", async () => {
+  let attempts = 0;
+  const fetchImpl = async () => {
+    attempts += 1;
+    return upstream(400);
+  };
+  const result = await handleMessage(
+    { type: "case" },
+    { apiKey: "sk-test", fetchImpl, retryDelayMs: 0 }
+  );
+  assert.equal(attempts, 1, "a 400 is permanent and must not be retried");
+  assert.equal(result.status, 400);
 });

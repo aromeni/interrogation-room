@@ -8,6 +8,18 @@ import {
 const ENDPOINT = "https://api.anthropic.com/v1/messages";
 const SCHEMAS = { case: CASE_SCHEMA, interrogate: REPLY_SCHEMA, judge: VERDICT_SCHEMA };
 
+// Anthropic returns 429 when rate limited and 529 when overloaded; 5xx are
+// transient by definition. Observed in production: a 529 on one call, with the
+// identical request succeeding four seconds later. Absorbing that here keeps a
+// blip from reaching the player as "Upstream error 529." mid-interrogation.
+// A 4xx other than 429 means the request itself is wrong — retrying it would
+// spend latency to be told the same thing twice.
+const RETRYABLE = new Set([429, 500, 502, 503, 504, 529]);
+export const MAX_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 1000;
+
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 // Takes an ALREADY-VALIDATED payload. Every request field the Anthropic API
 // sees originates here, never from the caller.
 export function buildRequest(payload) {
@@ -56,7 +68,7 @@ export function buildRequest(payload) {
   };
 }
 
-export async function handleMessage(body, { apiKey, fetchImpl = fetch }) {
+export async function handleMessage(body, { apiKey, fetchImpl = fetch, retryDelayMs = RETRY_DELAY_MS }) {
   let payload;
   try {
     payload = validatePayload(body);
@@ -71,18 +83,31 @@ export async function handleMessage(body, { apiKey, fetchImpl = fetch }) {
     return { status: 500, json: { error: "ANTHROPIC_API_KEY is not set on the server." } };
   }
 
-  let response;
-  try {
-    response = await fetchImpl(ENDPOINT, {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": ANTHROPIC_VERSION,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify(buildRequest(payload))
-    });
-  } catch {
+  const request = {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(buildRequest(payload))
+  };
+
+  // A null response means the call never landed — unreachable is retryable for
+  // the same reason a 529 is.
+  let response = null;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    response = null;
+    try {
+      response = await fetchImpl(ENDPOINT, request);
+    } catch {
+      // Leave response null and fall through to the retry decision.
+    }
+    if (response !== null && !RETRYABLE.has(response.status)) break;
+    if (attempt < MAX_ATTEMPTS) await wait(retryDelayMs);
+  }
+
+  if (response === null) {
     return { status: 502, json: { error: "The Anthropic API could not be reached." } };
   }
 
