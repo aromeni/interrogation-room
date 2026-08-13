@@ -1,23 +1,31 @@
     :root {
       color-scheme: dark;
 
-      /* Neutrals are charcoal, not brown. The cast is very slightly cool so
-         the brass reads as a deliberate accent rather than as more of the
-         same hue -- the old warm-brown ground made gold-on-brown look muddy
-         and dropped contrast on secondary text. */
-      --ink: #0a0b0c;
-      --panel: #16181c;
-      --panel-deep: #101216;
+      /* Neutrals are graphite: charcoal warmed by a couple of points per
+         channel, so the ground loses its cold slate cast without going
+         anywhere near the old brown. For scale -- the brown this replaced
+         was #1c1917, warm by five points with a hue you could name;
+         graphite sits at one to two, which reads as temperature rather
+         than as colour. */
+      --ink: #0c0b0a;
+      --panel: #191817;
+      --panel-deep: #121110;
 
-      /* Brass lifted a little to hold its own against a colder ground. */
+      /* Text neutrals warm by the same amount. Cool text on a warm ground
+         reads as a mismatch, and slate-versus-graphite is a property of the
+         whole neutral family, not just the surfaces. */
       --brass: #d4a72c;
-      --parchment: #eceef1;
-      --muted: #969ca6;
-      --danger: #cf5240;
+      --parchment: #eeeeec;
+      --muted: #a3a39e;
+      /* Lifted to clear WCAG AA on the panel surface (5.6:1). The original
+         brown palette had this at 3.07:1 and the first charcoal pass at
+         4.17:1 -- both below 4.5, on the colour used for the "Warrant
+         denied" banner and every error message. */
+      --danger: #e0705c;
       --hairline: rgba(212, 167, 44, 0.24);
 
-      /* The dossiers stay paper: warm stock on a cold desk. Deliberate --
-         the interface is charcoal, the documents in it are not. */
+      /* The dossiers stay paper: warm stock on a graphite desk. Deliberate --
+         the interface is near-neutral, the documents in it are not. */
       --paper: #cfc9ba;
       --paper-ink: #1d1b18;
 
