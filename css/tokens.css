@@ -24,10 +24,12 @@
       --danger: #e0705c;
       --hairline: rgba(212, 167, 44, 0.24);
 
-      /* The dossiers stay paper: warm stock on a graphite desk. Deliberate --
-         the interface is near-neutral, the documents in it are not. */
-      --paper: #cfc9ba;
-      --paper-ink: #1d1b18;
+      /* The dossiers are neutral stock, matched to the graphite family at
+         +1 warmth so they do not read colder than the chrome around them.
+         Luminance is held at the old tan's 0.586 so the cards keep their
+         visual weight -- this is a hue change, not a brightness one. */
+      --paper: #c9c9c8;
+      --paper-ink: #1a1a19;
 
       --shadow: rgba(0, 0, 0, 0.55);
 

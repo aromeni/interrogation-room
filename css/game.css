@@ -321,7 +321,7 @@
       position: absolute;
       top: 0.6rem;
       right: 0.7rem;
-      color: rgba(43, 37, 29, 0.36);
+      color: color-mix(in srgb, var(--paper-ink) 36%, transparent);
       font-family: var(--heading);
       font-size: 2.4rem;
       line-height: 1;
@@ -365,8 +365,8 @@
     .stress-track {
       height: 0.38rem;
       overflow: hidden;
-      background: rgba(43, 37, 29, 0.18);
-      border: 1px solid rgba(43, 37, 29, 0.2);
+      background: color-mix(in srgb, var(--paper-ink) 18%, transparent);
+      border: 1px solid color-mix(in srgb, var(--paper-ink) 20%, transparent);
     }
 
     .stress-fill {
