@@ -1,16 +1,28 @@
     :root {
       color-scheme: dark;
-      --ink: #12100e;
-      --panel: #1c1917;
-      --panel-deep: #171412;
-      --brass: #c9a227;
-      --parchment: #e8e2d4;
-      --muted: #a39d8f;
-      --danger: #b3402f;
-      --hairline: rgba(201, 162, 39, 0.25);
-      --paper: #c9b98f;
-      --paper-ink: #2b251d;
-      --shadow: rgba(0, 0, 0, 0.42);
+
+      /* Neutrals are charcoal, not brown. The cast is very slightly cool so
+         the brass reads as a deliberate accent rather than as more of the
+         same hue -- the old warm-brown ground made gold-on-brown look muddy
+         and dropped contrast on secondary text. */
+      --ink: #0a0b0c;
+      --panel: #16181c;
+      --panel-deep: #101216;
+
+      /* Brass lifted a little to hold its own against a colder ground. */
+      --brass: #d4a72c;
+      --parchment: #eceef1;
+      --muted: #969ca6;
+      --danger: #cf5240;
+      --hairline: rgba(212, 167, 44, 0.24);
+
+      /* The dossiers stay paper: warm stock on a cold desk. Deliberate --
+         the interface is charcoal, the documents in it are not. */
+      --paper: #cfc9ba;
+      --paper-ink: #1d1b18;
+
+      --shadow: rgba(0, 0, 0, 0.55);
+
       --heading: Georgia, "Times New Roman", serif;
       --body: "Courier New", ui-monospace, monospace;
     }
